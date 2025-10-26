@@ -226,6 +226,7 @@ class URLFeatureExtractor:
                 max_df=self.config["tfidf_word"]["max_df"],
                 tokenizer=lambda x: x.split(),  # Déjà tokenisé
                 lowercase=True,
+                token_pattern=None  # Ignorer le pattern par défaut
             )
         
         # TF-IDF caractères

@@ -1,0 +1,33 @@
+# Configurations spécifiques pour machines avec RAM limitée
+#python src/models/train.py --config-name=config_small 
+defaults:
+  - config
+
+# Override pour machines avec RAM limitée
+data:
+  kaggle_dataset: taruntiwarihp/phishing-site-urls
+  text_column: URL
+  target_column: Label
+  test_size: 0.2
+  val_size: 0.1
+  stratify: true
+  max_samples: 50000  #  Limiter le nombre de samples
+
+features:
+  tfidf_word:
+    use: true
+    ngram_range: [1, 2]
+    max_features: 800   #  Réduire le nombre de features
+    min_df: 5
+    max_df: 0.85
+    
+  tfidf_char:
+    use: false          # 
+    
+  lexical:
+    use: true
+
+train:
+  default:
+    optuna:
+      n_trials: 10     

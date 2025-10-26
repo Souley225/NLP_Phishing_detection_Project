@@ -1,0 +1,81 @@
+# NLP_phishing_detection_Project - Docker Compose
+# Auteur: Souleymane Sall
+# Email: sallsouleymane2207@gmail.com
+
+version: '3.8'
+
+services:
+  # Service API FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: phishing-api
+    ports:
+      - "8000:8000"
+    environment:
+      - KAGGLE_USERNAME=${KAGGLE_USERNAME}
+      - KAGGLE_KEY=${KAGGLE_KEY}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./mlruns:/app/mlruns
+    command: uvicorn src.serving.api:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - phishing-net
+
+  # Service UI Streamlit
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: phishing-ui
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+    command: streamlit run src/ui/app.py --server.port 8501 --server.address 0.0.0.0
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - phishing-net
+
+  # Service MLflow (optionnel, pour tracking local)
+  mlflow:
+    image: python:3.11-slim
+    container_name: phishing-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlruns
+      - ./mlartifacts:/mlartifacts
+    command: >
+      sh -c "pip install mlflow &&
+             mlflow server
+             --backend-store-uri file:///mlruns
+             --default-artifact-root file:///mlartifacts
+             --host 0.0.0.0
+             --port 5000"
+    restart: unless-stopped
+    networks:
+      - phishing-net
+
+networks:
+  phishing-net:
+    driver: bridge

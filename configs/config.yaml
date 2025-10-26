@@ -1,0 +1,92 @@
+# NLP_phishing_detection_Project - Configuration Hydra principale
+# Auteur: Souleymane Sall
+# Email: sallsouleymane2207@gmail.com
+
+defaults:
+  - model: default
+  - train: default
+  - logging: default
+  - _self_
+
+# ============================================
+# Dataset Configuration
+# ============================================
+data:
+  kaggle_dataset: taruntiwarihp/phishing-site-urls
+  text_column: URL
+  target_column: Label
+  test_size: 0.2
+  val_size: 0.1
+  stratify: true
+
+# ============================================
+# Paths
+# ============================================
+paths:
+  data_dir: data
+  raw_dir: data/raw
+  processed_dir: data/processed
+  models_dir: models
+  logs_dir: logs
+  predictions_dir: data/predictions
+
+# ============================================
+# Feature Engineering
+# ============================================
+features:
+  # TF-IDF Mots
+  tfidf_word:
+    use: true
+    ngram_range: [1, 3]
+    max_features: 5000
+    min_df: 2
+    max_df: 0.95
+    
+  # TF-IDF Caractères
+  tfidf_char:
+    use: true
+    analyzer: char
+    ngram_range: [2, 5]
+    max_features: 3000
+    min_df: 2
+    max_df: 0.95
+    
+  # Features lexicales URL
+  lexical:
+    use: true
+    features:
+      - url_length
+      - num_dots
+      - num_slashes
+      - num_dashes
+      - num_underscores
+      - num_at
+      - num_question
+      - num_ampersand
+      - num_equal
+      - num_digits
+      - digit_ratio
+      - has_ip
+      - entropy
+      - subdomain_count
+      - path_depth
+      - suspicious_tld
+
+# ============================================
+# MLflow Configuration
+# ============================================
+mlflow:
+  tracking_uri: ${oc.env:MLFLOW_TRACKING_URI,http://localhost:5000}
+  experiment_name: phishing_detection
+  run_name: null  # Auto-généré si null
+  log_models: true
+  log_artifacts: true
+
+# ============================================
+# Deployment
+# ============================================
+deploy:
+  api_host: 0.0.0.0
+  api_port: ${oc.env:API_PORT,8000}
+  ui_port: ${oc.env:UI_PORT,8501}
+  workers: 1

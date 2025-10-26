@@ -1,0 +1,52 @@
+# NLP_phishing_detection_Project - Render Configuration
+# Auteur: Souleymane Sall
+# Email: sallsouleymane2207@gmail.com
+
+services:
+  # Service 1: API FastAPI
+  - type: web
+    name: phishing-api
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.serving.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: KAGGLE_USERNAME
+        sync: false
+      - key: KAGGLE_KEY
+        sync: false
+      - key: MLFLOW_TRACKING_URI
+        value: file:///var/data/mlruns
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+    disk:
+      name: phishing-data
+      mountPath: /var/data
+      sizeGB: 1
+
+  # Service 2: UI Streamlit
+  - type: web
+    name: phishing-ui
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run src/ui/app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: API_URL
+        fromService:
+          type: web
+          name: phishing-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: LOG_LEVEL
+        value: INFO

@@ -1,0 +1,42 @@
+# NLP_phishing_detection_Project - Configuration Modèle
+# Auteur: Souleymane Sall
+# Email: sallsouleymane2207@gmail.com
+
+# Configuration par défaut du modèle
+default:
+  # Type de modèle (LogisticRegression)
+  name: LogisticRegression
+  
+  # Hyperparamètres par défaut
+  # Ces valeurs seront optimisées par Optuna
+  params:
+    C: 1.0                    # Régularisation inverse
+    max_iter: 1000            # Nombre max d'itérations
+    solver: liblinear         # Solveur d'optimisation
+    penalty: l2               # Type de régularisation
+    class_weight: balanced    # Gestion du déséquilibre de classes
+    random_state: 42          # Seed pour reproductibilité
+    n_jobs: -1                # Utiliser tous les coeurs CPU
+  
+  # Espace de recherche Optuna
+  optuna_space:
+    C:
+      type: loguniform
+      low: 0.001
+      high: 100.0
+    max_iter:
+      type: categorical
+      choices: [500, 1000, 2000]
+    solver:
+      type: categorical
+      choices: [liblinear, lbfgs]
+    penalty:
+      type: categorical
+      choices: [l1, l2]
+  
+  # Sauvegarde
+  save_name: best_model.pkl
+  vectorizers:
+    tfidf_word: tfidf_word.pkl
+    tfidf_char: tfidf_char.pkl
+    scaler: scaler.pkl

@@ -1,0 +1,28 @@
+# NLP_phishing_detection_Project - Configuration Entraînement
+# Auteur: Souleymane Sall
+# Email: sallsouleymane2207@gmail.com
+
+default:
+  # Seed pour reproductibilité
+  seed: 42
+  
+  # Optuna Configuration
+  optuna:
+    n_trials: 20              # Nombre d'essais d'optimisation
+    timeout: null             # Timeout en secondes (null = pas de limite)
+    n_jobs: 1                 # Nombre de jobs parallèles (-1 = tous les coeurs)
+    show_progress_bar: true
+    direction: maximize       # Maximiser la métrique
+    metric: f1_score          # Métrique à optimiser
+    
+  # Cross-validation
+  cv:
+    n_splits: 5               # Nombre de folds
+    shuffle: true
+    stratified: true
+    
+  # Early stopping (si supporté par le modèle)
+  early_stopping:
+    enabled: false
+    patience: 10
+    min_delta: 0.001

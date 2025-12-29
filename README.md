@@ -1,202 +1,140 @@
-# Détecteur de Phishing - Analyse d'URLs par Machine Learning
+# Detecteur de Phishing par Analyse d'URLs
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
-[![MLflow](https://img.shields.io/badge/MLflow-2.8+-orange.svg)](https://mlflow.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.39-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![MLflow](https://img.shields.io/badge/MLflow-2.16-0194E2?logo=mlflow&logoColor=white)](https://mlflow.org/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
-> Un projet de détection automatique de sites de phishing en analysant simplement leurs URLs. Pas besoin de visiter le site ou d'utiliser des services externes.
-
-**Par** : Souleymane Sall  
-**Contact** : sallsouleymane2207@gmail.com  
-**Date** : Octobre 2025
-
----
-
-## C'est quoi ce projet ?
-
-J'ai créé un système qui peut détecter si une URL est un site de phishing ou non, juste en regardant l'URL elle-même. Pas besoin de visiter le site, pas besoin de vérifier des listes noires, pas besoin de services externes.
-
-Le modèle analyse l'URL comme du texte et repère les patterns suspects (domaines bizarres, caractères louches, structures anormales...).
-
-**Résultats** : Plus de 97% de précision sur 549 000 URLs testées.
+Systeme de detection de phishing par analyse textuelle d'URLs utilisant le NLP et le Machine Learning. Precision de **97%+** sur 549 000 URLs.
 
 ---
 
-## Pourquoi ce projet ?
+## Table des matieres
 
-Les attaques de phishing sont partout. Les méthodes classiques pour les détecter ont des problèmes :
-- Elles nécessitent des services externes (WHOIS, DNS...)
-- Elles doivent charger les pages web (lent et risqué)
-- Elles utilisent des listes noires (toujours en retard)
-
-**Ma solution** : Analyser juste la chaîne de caractères de l'URL avec du NLP et du machine learning.
-
-### Dataset utilisé
-
-- **Source** : [Kaggle - Phishing Site URLs](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
-- **Taille** : ~549 000 URLs
-- **Équilibré** : 50% phishing, 50% légitimes
+- [Fonctionnalites](#fonctionnalites)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Utilisation](#utilisation)
+- [API](#api)
+- [Deploiement](#deploiement)
+- [Performances](#performances)
+- [Stack technique](#stack-technique)
+- [Contact](#contact)
 
 ---
 
-## Comment ça marche ?
+## Fonctionnalites
 
-### Vue d'ensemble
+| Fonctionnalite | Description |
+|----------------|-------------|
+| **Detection autonome** | Analyse basee uniquement sur la chaine URL, sans appel externe |
+| **API REST** | Endpoint FastAPI pour integration |
+| **Interface web** | Dashboard Streamlit pour tests manuels |
+| **Tracking ML** | Suivi des experiences avec MLflow |
+| **Optimisation auto** | Recherche d'hyperparametres via Optuna |
+| **Deploiement cloud** | Configuration Render prete |
+
+---
+
+## Architecture
 
 ```
-URL brute → Extraction de caractéristiques → Modèle ML → Prédiction
+URL → Extraction Features → Modele ML → Prediction
+         │
+         ├── TF-IDF mots (5000 features)
+         ├── TF-IDF caracteres (3000 features)
+         └── Features lexicales (16 features)
 ```
 
-J'utilise trois types de caractéristiques :
-
-1. **Statistiques de l'URL** (8 features)
-   - Longueur totale
-   - Nombre de sous-domaines
-   - Présence d'une adresse IP
-   - Entropie (mesure du "désordre")
-   - Proportion de chiffres
-   - Nombre de caractères spéciaux (@, ?, &...)
-   - TLD suspect (.tk, .ml...)
-   - Profondeur des chemins
-
-2. **Analyse des mots** (5000 features TF-IDF)
-   - Je découpe l'URL en "mots" (paypal, login, secure...)
-   - Le modèle apprend quels mots apparaissent dans le phishing
-
-3. **Analyse des caractères** (3000 features TF-IDF)
-   - Analyse des séquences de 2-5 caractères
-   - Détecte les tentatives d'imitation (paypa1 vs paypal)
-
-**Total** : Plus de 8000 caractéristiques analysées par URL.
-
-### Le modèle
-
-J'utilise une **régression logistique** optimisée avec :
-- **Optuna** pour trouver les meilleurs hyperparamètres automatiquement
-- **MLflow** pour suivre toutes les expériences et comparer les résultats
-- **Validation croisée** pour éviter le surapprentissage
+**Features extraites :**
+- Longueur, entropie, ratio chiffres
+- Nombre de sous-domaines, profondeur du chemin
+- Presence d'IP, TLD suspect
+- Caracteres speciaux (@, ?, &, =)
 
 ---
 
 ## Installation
 
-### Ce dont vous avez besoin
+### Prerequis
 
-- Python 3.11 ou plus récent
-- Un compte Kaggle (pour télécharger le dataset)
-- Docker (optionnel, pour le déploiement)
+- Python 3.11+
+- Compte Kaggle (pour le dataset)
+- Docker (optionnel)
 
-### Étapes d'installation
+### Etapes
 
-**1. Cloner le projet**
 ```bash
+# Cloner
 git clone https://github.com/Souley225/NLP_phishing_detection_Project.git
 cd NLP_phishing_detection_Project
-```
 
-**2. Créer un environnement virtuel**
-```bash
+# Environnement virtuel
 python -m venv .venv
-source .venv/bin/activate  # Sur Mac/Linux
-# ou
-.venv\Scripts\activate  # Sur Windows
-```
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # Linux/Mac
 
-**3. Installer les dépendances**
-```bash
+# Dependances
 pip install -r requirements.txt
-```
 
-**4. Configurer Kaggle**
+# Configuration Kaggle
+# Creer ~/.kaggle/kaggle.json avec vos identifiants
 
-Créez le fichier `~/.kaggle/kaggle.json` avec vos identifiants :
-```json
-{
-  "username": "votre_username",
-  "key": "votre_cle_api"
-}
-```
-
-Sur Mac/Linux, changez les permissions :
-```bash
-chmod 600 ~/.kaggle/kaggle.json
-```
-
-**5. Variables d'environnement**
-```bash
+# Variables d'environnement
 cp .env.example .env
-# Éditez .env avec vos infos
 ```
 
 ---
 
 ## Utilisation
 
-### Le workflow complet en 5 commandes
+### Commandes principales
 
 ```bash
-# 1. Télécharger les données
-make download
-
-# 2. Entraîner le modèle
-make train
-
-# 3. Évaluer les performances
-make evaluate
-
-# 4. Lancer l'API
-make serve
-
-# 5. Lancer l'interface web (dans un autre terminal)
-make ui
+make download    # Telecharger le dataset
+make train       # Entrainer le modele
+make evaluate    # Evaluer les performances
+make serve       # Lancer l'API (port 8000)
+make ui          # Lancer l'interface (port 8501)
+make mlflow      # Lancer MLflow UI (port 5000)
 ```
 
-### Tester rapidement
+### Prediction directe
 
 ```bash
-# Prédire une seule URL
-python src/models/predict.py --text "http://paypal-secure.tk/login.php"
+# URL unique
+python src/models/predict.py --text "http://paypal-secure.tk/login"
 
-# Prédire plusieurs URLs depuis un fichier CSV
+# Batch depuis fichier
 python src/models/predict.py --input urls.csv --output predictions.csv
 ```
 
-### Personnaliser l'entraînement
+### Personnalisation
 
 ```bash
-# Plus d'essais pour l'optimisation (meilleure performance)
-python src/models/train.py train.n_trials=100
-
-# Changer les paramètres du modèle
-python src/models/train.py model.max_iter=300
-
-# Utiliser un seed différent
-python src/models/train.py train.seed=42
+python src/models/train.py train.n_trials=100    # Plus d'iterations Optuna
+python src/models/train.py model.max_iter=300    # Iterations modele
+python src/models/train.py train.seed=42         # Seed custom
 ```
 
 ---
 
-## L'API REST
+## API
 
-Une fois lancée avec `make serve`, l'API est disponible sur `http://localhost:8000`.
+Base URL : `http://localhost:8000`
 
-### Vérifier que l'API fonctionne
+### Endpoints
 
-```bash
-curl http://localhost:8000/health
-```
+| Methode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/health` | Verification de sante |
+| POST | `/predict` | Prediction sur URL |
+| GET | `/docs` | Documentation Swagger |
 
-Réponse :
-```json
-{
-  "status": "healthy",
-  "model_loaded": true,
-  "timestamp": "2025-10-26T12:34:56"
-}
-```
-
-### Analyser une URL
+### Exemple
 
 ```bash
 curl -X POST http://localhost:8000/predict \
@@ -204,240 +142,121 @@ curl -X POST http://localhost:8000/predict \
   -d '{"url": "http://paypal-verify.tk/account"}'
 ```
 
-Réponse :
+**Reponse :**
 ```json
 {
   "url": "http://paypal-verify.tk/account",
   "prediction": 1,
   "label": "phishing",
-  "confidence": 0.94,
-  "timestamp": "2025-10-26T12:35:10"
+  "proba_phishing": 0.94,
+  "proba_legitimate": 0.06
 }
 ```
 
-La documentation interactive est disponible sur `http://localhost:8000/docs`.
-
 ---
 
-## L'interface web
+## Deploiement
 
-Lancez l'interface avec `make ui` et allez sur `http://localhost:8501`.
-
-Vous pourrez :
-- Entrer n'importe quelle URL pour l'analyser
-- Voir immédiatement si c'est du phishing ou non
-- Consulter le score de confiance
-- Visualiser les mots/caractères qui ont influencé la décision
-- Garder un historique de vos analyses
-
----
-
-## Déploiement
-
-### Avec Docker (local)
+### Docker
 
 ```bash
-# Tout lancer en une commande
+# Local
 docker compose up --build
 
-# L'API sera sur http://localhost:8000
-# L'interface sur http://localhost:8501
+# Services disponibles :
+# API      → http://localhost:8000
+# UI       → http://localhost:8501
+# MLflow   → http://localhost:5000
 ```
 
-### Sur le cloud (Render)
+### Render
 
-Le projet est configuré pour être déployé facilement sur Render :
+1. Pousser le code sur GitHub
+2. Connecter le repo sur [render.com](https://render.com)
+3. Le fichier `render.yaml` configure automatiquement :
+   - Service API (`phishing-api`)
+   - Service UI (`phishing-ui`)
+4. Ajouter les variables `KAGGLE_USERNAME` et `KAGGLE_KEY`
 
-1. Poussez votre code sur GitHub
-2. Connectez votre repo sur [render.com](https://render.com)
-3. Render détecte automatiquement le fichier `render.yaml`
-4. Ajoutez vos variables d'environnement (KAGGLE_USERNAME, KAGGLE_KEY)
-5. Cliquez sur "Deploy"
+---
 
-Le fichier `render.yaml` configure deux services :
-- L'API FastAPI
-- L'interface Streamlit
+## Performances
+
+| Metrique | Score |
+|----------|-------|
+| Precision globale | 97.2% |
+| Precision (phishing) | 96.8% |
+| Rappel (phishing) | 97.6% |
+| F1-Score | 97.2% |
+| ROC-AUC | 99.1% |
+
+**Latence :**
+- 1 URL : < 5ms
+- 1000 URLs : < 500ms
+
+---
+
+## Stack technique
+
+| Categorie | Technologies |
+|-----------|--------------|
+| **ML/NLP** | scikit-learn, Optuna, pandas, numpy |
+| **MLOps** | MLflow, Hydra |
+| **API** | FastAPI, Uvicorn, Pydantic |
+| **UI** | Streamlit |
+| **DevOps** | Docker, Docker Compose, Render |
+| **Qualite** | pytest, ruff, black, mypy |
 
 ---
 
 ## Structure du projet
 
 ```
-nlp-phishing-detector/
-│
-├── src/                       # Code source
-│   ├── data/                  # Téléchargement et préparation des données
-│   ├── features/              # Extraction des caractéristiques
-│   ├── models/                # Entraînement et prédictions
-│   ├── serving/               # API FastAPI
-│   ├── ui/                    # Interface Streamlit
-│   └── utils/                 # Fonctions utilitaires
-│
-├── configs/                   # Fichiers de configuration (Hydra)
-├── tests/                     # Tests unitaires
-├── data/                      # Données (pas sur Git)
-├── models/                    # Modèles entraînés (pas sur Git)
-├── mlruns/                    # Expériences MLflow (pas sur Git)
-│
-├── Dockerfile                 # Pour créer l'image Docker
-├── docker-compose.yml         # Pour lancer les services localement
-├── render.yaml                # Configuration du déploiement cloud
-├── Makefile                   # Commandes rapides
-└── requirements.txt           # Dépendances Python
+.
+├── src/
+│   ├── data/          # Acquisition des donnees
+│   ├── features/      # Feature engineering
+│   ├── models/        # Entrainement, evaluation, prediction
+│   ├── serving/       # API FastAPI
+│   ├── ui/            # Interface Streamlit
+│   └── utils/         # Utilitaires
+├── configs/           # Configuration Hydra
+├── tests/             # Tests unitaires
+├── Dockerfile
+├── docker-compose.yml
+├── render.yaml
+├── Makefile
+└── requirements.txt
 ```
-
----
-
-## Suivi des expériences avec MLflow
-
-MLflow garde une trace de tous mes essais d'entraînement.
-
-### Lancer l'interface MLflow
-
-```bash
-mlflow ui
-# Puis allez sur http://localhost:5000
-```
-
-Vous y verrez :
-- Tous les paramètres testés
-- Les performances de chaque essai
-- Les graphiques (courbe ROC, matrice de confusion)
-- Les modèles sauvegardés
-
-C'est super pratique pour comparer différentes versions et choisir la meilleure.
 
 ---
 
 ## Tests
 
 ```bash
-# Lancer tous les tests
-pytest tests/ -v
-
-# Tests d'un module spécifique
-pytest tests/test_features.py -v
-
-# Avec rapport de couverture
-pytest tests/ --cov=src --cov-report=html
+pytest tests/ -v                              # Tests complets
+pytest tests/ --cov=src --cov-report=html     # Avec couverture
 ```
 
 ---
 
-## Performances
+## Dataset
 
-Sur le jeu de test (données jamais vues pendant l'entraînement) :
-
-| Métrique | Score |
-|----------|-------|
-| Précision globale | 97.2% |
-| Précision (classe phishing) | 96.8% |
-| Rappel (détection des phishing) | 97.6% |
-| Score F1 | 97.2% |
-| ROC-AUC | 99.1% |
-
-**Vitesse** :
-- Une URL : moins de 5ms
-- 1000 URLs : moins de 500ms
-
----
-
-## Stack technique
-
-**Machine Learning & Data**
-- scikit-learn (modèle et features)
-- Optuna (optimisation automatique)
-- pandas & numpy (manipulation des données)
-
-**MLOps**
-- MLflow (suivi des expériences)
-- Hydra (configuration flexible)
-
-**Web**
-- FastAPI (API REST)
-- Streamlit (interface utilisateur)
-- Uvicorn (serveur)
-
-**DevOps**
-- Docker & Docker Compose
-- Render (déploiement cloud)
-
-**Qualité**
-- pytest (tests)
-- ruff, black, isort (formatage du code)
-
----
-
-## Ce que j'ai appris
-
-Ce projet m'a permis de mettre en pratique :
-
-- Le **feature engineering** : transformer du texte brut en caractéristiques exploitables
-- L'**optimisation d'hyperparamètres** : laisser l'algorithme trouver les meilleurs réglages
-- Le **MLOps** : suivre mes expériences, versionner mes modèles
-- Le **déploiement** : passer d'un notebook à une API production-ready
-- Les **bonnes pratiques** : tests, documentation, configuration propre
-
----
-
-## Améliorations possibles
-
-Si je devais aller plus loin :
-
-- Tester des modèles plus complexes (BERT, transformers)
-- Ajouter des features temporelles (âge du domaine, historique)
-- Créer un système d'apprentissage continu
-- Ajouter une détection d'anomalies pour les nouveaux patterns
-- Améliorer l'interface avec plus de visualisations
-- Faire un monitoring en production (drift, performances)
-
----
-
-## Contribution
-
-Le projet est open source. Si vous voulez contribuer :
-
-1. Fork le projet
-2. Créez une branche pour votre feature
-3. Faites vos modifications
-4. Envoyez une pull request
-
-Toute contribution est la bienvenue, que ce soit du code, de la doc, ou des idées !
-
----
-
-## Licence
-
-MIT License - Vous pouvez utiliser ce code librement.
+Source : [Kaggle - Phishing Site URLs](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
+- 549 000 URLs
+- 50% phishing, 50% legitimes
 
 ---
 
 ## Contact
 
-**Souleymane Sall**  
-📧 sallsouleymane2207@gmail.com  
-💼 [LinkedIn](#)  
-🐙 [GitHub](#)
+**Souleymane Sall**
 
-N'hésitez pas à me contacter si vous avez des questions ou des suggestions !
+[![Email](https://img.shields.io/badge/Email-sallsouleymane2207%40gmail.com-EA4335?logo=gmail&logoColor=white)](mailto:sallsouleymane2207@gmail.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Souley225-181717?logo=github&logoColor=white)](https://github.com/Souley225)
 
 ---
 
-## Ressources
+## Licence
 
-**Dataset**
-- [Phishing Site URLs sur Kaggle](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
-
-**Articles de recherche qui m'ont inspiré**
-- [BERT for Phishing Detection](https://www.sciencedirect.com/science/article/pii/S1877050921014368)
-- [URL-based Features](https://pmc.ncbi.nlm.nih.gov/articles/PMC8935623/)
-- [Hybrid NLP Approach](https://www.mdpi.com/2079-9292/11/22/3647)
-
-**Documentation**
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [MLflow](https://mlflow.org/docs/latest/index.html)
-- [scikit-learn](https://scikit-learn.org/stable/)
-
----
-
-*Ce README est régulièrement mis à jour. Dernière modification : Octobre 2025*
+MIT License - Utilisation libre.

@@ -1,4 +1,4 @@
-# Detecteur de Phishing par Analyse d'URLs
+# Détection de Phishing 
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -250,13 +250,30 @@ Source : [Kaggle - Phishing Site URLs](https://www.kaggle.com/datasets/taruntiwa
 
 ## Contact
 
-**Souleymane Sall**
+**Souleymane Sall**  
+📧 sallsouleymane2207@gmail.com  
+💼 [LinkedIn](www.linkedin.com/in/souleymanes-sall)  
+🐙 [Meduim](medium.com/@sallsouleymane66)
 
-[![Email](https://img.shields.io/badge/Email-sallsouleymane2207%40gmail.com-EA4335?logo=gmail&logoColor=white)](mailto:sallsouleymane2207@gmail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Souley225-181717?logo=github&logoColor=white)](https://github.com/Souley225)
+N'hésitez pas à me contacter si vous avez des questions ou des suggestions !
 
 ---
 
-## Licence
+## Ressources
 
-MIT License - Utilisation libre.
+**Dataset**
+- [Phishing Site URLs sur Kaggle](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
+
+**Articles de recherche qui m'ont inspiré**
+- [BERT for Phishing Detection](https://www.sciencedirect.com/science/article/pii/S1877050921014368)
+- [URL-based Features](https://pmc.ncbi.nlm.nih.gov/articles/PMC8935623/)
+- [Hybrid NLP Approach](https://www.mdpi.com/2079-9292/11/22/3647)
+
+**Documentation**
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [MLflow](https://mlflow.org/docs/latest/index.html)
+- [scikit-learn](https://scikit-learn.org/stable/)
+
+---
+
+*Ce README est régulièrement mis à jour. Dernière modification : Octobre 2025*

@@ -72,7 +72,7 @@ data/predictions/*
 # ============================================
 # Models
 # ============================================
-# pkl/joblib artifacts are tracked (small size, needed for deployment)
+# .pkl/.joblib artifacts are tracked (needed for HF deployment)
 models/*.h5
 models/*.pt
 models/*.pth

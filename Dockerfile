@@ -2,7 +2,7 @@
 # Auteur: Souleymane Sall
 # Email: sallsouleymane2207@gmail.com
 #
-# Single process: Streamlit boots FastAPI in a background thread.
+# Single process: Streamlit loads the model directly (no separate API process).
 # HF Spaces port: 7860
 
 FROM python:3.11-slim
@@ -13,8 +13,7 @@ LABEL version="1.0.0"
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app \
-    API_URL=http://127.0.0.1:8080
+    PYTHONPATH=/app
 
 WORKDIR /app
 

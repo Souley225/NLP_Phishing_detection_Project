@@ -6,35 +6,17 @@ Auteur: Souleymane Sall
 Email: sallsouleymane2207@gmail.com
 """
 
-import os
 import sys
-import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
+import numpy as np
+import pandas as pd
 import streamlit as st
-
-# ── Boot FastAPI in a background thread (single-process HF deployment) ────────
-# This ensures FastAPI is always available regardless of how the container starts.
+import yaml
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
-
-def _start_api_server() -> None:
-    """Run FastAPI + uvicorn in a daemon thread."""
-    try:
-        import uvicorn
-        from src.serving.api import app as fastapi_app
-        uvicorn.run(fastapi_app, host="127.0.0.1", port=8080, log_level="error")
-    except Exception:
-        pass  # Streamlit UI still works; health check shows OFFLINE
-
-_api_thread = threading.Thread(target=_start_api_server, daemon=True, name="fastapi")
-if not any(t.name == "fastapi" for t in threading.enumerate()):
-    _api_thread.start()
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
     page_title="PhishGuard — URL Threat Scanner",
@@ -42,8 +24,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8080")
 
 
 # ── CSS Injection ─────────────────────────────────────────────────────────────
@@ -546,32 +526,80 @@ def inject_css() -> None:
     """, unsafe_allow_html=True)
 
 
-# ── API helpers ───────────────────────────────────────────────────────────────
+# ── Model loading (cached — runs once per container lifetime) ─────────────────
 
-def check_api_health() -> bool:
-    for _ in range(3):          # retry up to 3x — API thread may still be loading
-        try:
-            r = requests.get(f"{API_URL}/health", timeout=4)
-            if r.status_code == 200 and r.json().get("model_loaded", False):
-                return True
-        except Exception:
-            pass
-        import time; time.sleep(1)
-    return False
+@st.cache_resource(show_spinner="Loading threat detection model…")
+def load_model():
+    """Load model + feature extractors once; cache for the lifetime of the app."""
+    import joblib
+    from src.features.build_features import URLFeatureExtractor
+
+    models_dir = ROOT / "models"
+    cfg_path   = ROOT / "configs" / "config.yaml"
+
+    with open(cfg_path) as f:
+        feat_cfg = yaml.safe_load(f)["features"]
+
+    model = joblib.load(models_dir / "best_model.pkl")
+
+    extractor = URLFeatureExtractor(feat_cfg)
+    if feat_cfg.get("tfidf_word", {}).get("use"):
+        extractor.tfidf_word = joblib.load(models_dir / "tfidf_word.pkl")
+    if feat_cfg.get("tfidf_char", {}).get("use"):
+        extractor.tfidf_char = joblib.load(models_dir / "tfidf_char.pkl")
+    if feat_cfg.get("lexical", {}).get("use"):
+        extractor.scaler = joblib.load(models_dir / "scaler.pkl")
+    extractor.is_fitted = True
+
+    return model, extractor
+
+
+def is_model_ready() -> bool:
+    try:
+        load_model()
+        return True
+    except Exception:
+        return False
 
 
 def predict_url(url: str) -> dict | None:
     try:
-        r = requests.post(f"{API_URL}/predict", json={"url": url}, timeout=10)
-        if r.status_code == 200:
-            return r.json()
-        st.error(f"API error {r.status_code}: {r.text}")
-        return None
-    except requests.exceptions.ConnectionError:
-        st.error("Cannot connect to the API. Make sure it is running.")
-        return None
+        model, extractor = load_model()
+        X = extractor.transform(pd.Series([url]))
+
+        raw_pred      = model.predict(X)[0]
+        probabilities = model.predict_proba(X)[0]
+
+        LABEL_TO_INT = {"bad": 1, "good": 0}
+        prediction = (
+            int(raw_pred)
+            if isinstance(raw_pred, (int, np.integer))
+            else LABEL_TO_INT.get(str(raw_pred), 0)
+        )
+
+        classes   = list(model.classes_)
+        if isinstance(classes[0], (int, np.integer)):
+            idx_legit = classes.index(0) if 0 in classes else 0
+            idx_phish = classes.index(1) if 1 in classes else 1
+        else:
+            idx_legit = classes.index("good") if "good" in classes else 0
+            idx_phish = classes.index("bad")  if "bad"  in classes else 1
+
+        proba_legit = float(probabilities[idx_legit])
+        proba_phish = float(probabilities[idx_phish])
+        confidence  = proba_phish if prediction == 1 else proba_legit
+
+        return {
+            "url":              url,
+            "prediction":       prediction,
+            "label":            "phishing" if prediction == 1 else "legitimate",
+            "confidence":       confidence,
+            "proba_legitimate": proba_legit,
+            "proba_phishing":   proba_phish,
+            "timestamp":        datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        }
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Prediction error: {e}")
         return None
 
 
@@ -680,8 +708,8 @@ def render_history(history: list) -> None:
 
 def render_sidebar_status(online: bool) -> None:
     dot_cls = "on" if online else "off"
-    label   = "ONLINE — Model Ready" if online else "OFFLINE"
-    color   = "var(--green)" if online else "var(--red)"
+    label   = "ONLINE — Model Ready" if online else "Loading model…"
+    color   = "var(--green)" if online else "var(--amber)"
     st.markdown(f"""
     <div class="sb-label">System Status</div>
     <div class="sb-status" style="color:{color}">
@@ -747,7 +775,7 @@ def main() -> None:
 
     # ── Sidebar ──────────────────────────────────────────────────
     with st.sidebar:
-        online = check_api_health()
+        online = is_model_ready()
         render_sidebar_status(online)
         render_model_info()
         render_examples()
@@ -786,7 +814,7 @@ def main() -> None:
         if not url_input.strip():
             st.warning("Please enter a URL to scan.")
         elif not online:
-            st.error("API is offline. Cannot perform scan.")
+            st.warning("Model is still loading. Please wait a moment and try again.")
         else:
             with st.spinner("Scanning..."):
                 result = predict_url(url_input.strip())

@@ -7,10 +7,34 @@ Email: sallsouleymane2207@gmail.com
 """
 
 import os
+import sys
+import threading
 from datetime import datetime
+from pathlib import Path
 
 import requests
 import streamlit as st
+
+# ── Boot FastAPI in a background thread (single-process HF deployment) ────────
+# This ensures FastAPI is always available regardless of how the container starts.
+
+ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT))
+
+def _start_api_server() -> None:
+    """Run FastAPI + uvicorn in a daemon thread."""
+    try:
+        import uvicorn
+        from src.serving.api import app as fastapi_app
+        uvicorn.run(fastapi_app, host="127.0.0.1", port=8080, log_level="error")
+    except Exception:
+        pass  # Streamlit UI still works; health check shows OFFLINE
+
+_api_thread = threading.Thread(target=_start_api_server, daemon=True, name="fastapi")
+if not any(t.name == "fastapi" for t in threading.enumerate()):
+    _api_thread.start()
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
     page_title="PhishGuard — URL Threat Scanner",
@@ -19,7 +43,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8080")
 
 
 # ── CSS Injection ─────────────────────────────────────────────────────────────
@@ -525,11 +549,15 @@ def inject_css() -> None:
 # ── API helpers ───────────────────────────────────────────────────────────────
 
 def check_api_health() -> bool:
-    try:
-        r = requests.get(f"{API_URL}/health", timeout=5)
-        return r.status_code == 200 and r.json().get("model_loaded", False)
-    except Exception:
-        return False
+    for _ in range(3):          # retry up to 3x — API thread may still be loading
+        try:
+            r = requests.get(f"{API_URL}/health", timeout=4)
+            if r.status_code == 200 and r.json().get("model_loaded", False):
+                return True
+        except Exception:
+            pass
+        import time; time.sleep(1)
+    return False
 
 
 def predict_url(url: str) -> dict | None:

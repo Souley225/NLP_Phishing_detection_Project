@@ -24,8 +24,14 @@ from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import StandardScaler
+
+
+def _split_tokens(x: str) -> list[str]:
+    """Module-level tokenizer for TfidfVectorizer (picklable)."""
+    return x.split()
 
 
 # Liste des TLDs suspects fréquemment utilisés pour le phishing
@@ -224,7 +230,7 @@ class URLFeatureExtractor:
                 max_features=self.config["tfidf_word"]["max_features"],
                 min_df=self.config["tfidf_word"]["min_df"],
                 max_df=self.config["tfidf_word"]["max_df"],
-                tokenizer=lambda x: x.split(),  # Déjà tokenisé
+                tokenizer=_split_tokens,  # Déjà tokenisé
                 lowercase=True,
                 token_pattern=None  # Ignorer le pattern par défaut
             )
@@ -263,7 +269,7 @@ class URLFeatureExtractor:
         if self.tfidf_char is not None:
             self.tfidf_char.fit(urls)
         
-        # Scaler pour features lexicales
+        # Scaler pour features lexicales (dense, manageable size)
         if self.scaler is not None:
             lexical_features = self._extract_lexical_features_batch(urls)
             self.scaler.fit(lexical_features)
@@ -288,27 +294,30 @@ class URLFeatureExtractor:
             raise ValueError("Le transformer doit être entraîné avec fit() avant transform()")
         
         features_list = []
-        
-        # Features TF-IDF mots
+
+        # Features TF-IDF mots (sparse)
         if self.tfidf_word is not None:
             tokenized_urls = urls.apply(tokenize_url)
-            tfidf_word_features = self.tfidf_word.transform(tokenized_urls).toarray()
+            tfidf_word_features = self.tfidf_word.transform(tokenized_urls)
             features_list.append(tfidf_word_features)
-        
-        # Features TF-IDF caractères
+
+        # Features TF-IDF caractères (sparse)
         if self.tfidf_char is not None:
-            tfidf_char_features = self.tfidf_char.transform(urls).toarray()
+            tfidf_char_features = self.tfidf_char.transform(urls)
             features_list.append(tfidf_char_features)
-        
-        # Features lexicales
+
+        # Features lexicales (convert to sparse)
         if self.scaler is not None:
             lexical_features = self._extract_lexical_features_batch(urls)
             lexical_features_scaled = self.scaler.transform(lexical_features)
-            features_list.append(lexical_features_scaled)
-        
-        # Concaténer toutes les features
-        X = np.hstack(features_list) if features_list else np.array([]).reshape(len(urls), 0)
-        
+            features_list.append(sp.csr_matrix(lexical_features_scaled))
+
+        # Concaténer avec hstack sparse
+        if features_list:
+            X = sp.hstack(features_list, format="csr")
+        else:
+            X = sp.csr_matrix((len(urls), 0))
+
         return X
     
     def fit_transform(self, urls: pd.Series) -> np.ndarray:

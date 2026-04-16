@@ -72,13 +72,11 @@ data/predictions/*
 # ============================================
 # Models
 # ============================================
-models/*.pkl
-models/*.joblib
+# pkl/joblib artifacts are tracked (small size, needed for deployment)
 models/*.h5
 models/*.pt
 models/*.pth
 models/*.onnx
-!models/.gitkeep
 
 # ============================================
 # MLflow

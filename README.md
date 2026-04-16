@@ -1,3 +1,15 @@
+---
+title: NLP Phishing Detection
+emoji: 🛡️
+colorFrom: red
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: true
+license: mit
+short_description: Detect phishing URLs with NLP (TF-IDF + Logistic Regression)
+---
+
 # Détection de Phishing 
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)

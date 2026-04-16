@@ -1,9 +1,6 @@
 """
 API FastAPI pour la détection de phishing.
 
-Cette API expose des endpoints REST pour prédire si une URL
-est légitime ou du phishing.
-
 Endpoints:
 - GET /health: Health check
 - POST /predict: Prédiction sur une URL
@@ -12,188 +9,146 @@ Auteur: Souleymane Sall
 Email: sallsouleymane2207@gmail.com
 """
 
+import logging
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
+import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Ajouter le répertoire parent au path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+# Ensure project root is on path
+ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT))
 
-from src.config import load_config, validate_config
 from src.features.build_features import URLFeatureExtractor
 from src.utils.io_utils import load_joblib
-from src.utils.logging_utils import get_logger, setup_logging
 
-# Configuration du logger
-setup_logging(level=os.getenv("LOG_LEVEL", "INFO"), log_format="json")
-logger = get_logger(__name__)
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+)
+logger = logging.getLogger(__name__)
 
-# Initialiser FastAPI
 app = FastAPI(
     title="Phishing Detection API",
     description="API de détection de phishing par analyse d'URLs",
     version="1.0.0",
-    contact={
-        "name": "Souleymane Sall",
-        "email": "sallsouleymane2207@gmail.com",
-    },
+    contact={"name": "Souleymane Sall", "email": "sallsouleymane2207@gmail.com"},
 )
 
-# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, spécifier les origines autorisées
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Variables globales pour le modèle et les extractors
 model: Any = None
 feature_extractor: URLFeatureExtractor | None = None
-config: Any = None
 
 
-# Modèles Pydantic pour validation
+# ── Pydantic models ───────────────────────────────────────────────────────────
+
 class URLRequest(BaseModel):
-    """Requête de prédiction pour une URL."""
-    
-    url: str = Field(
-        ...,
-        description="URL à analyser",
-        example="http://paypal-secure.tk/login.php",
-    )
+    url: str = Field(..., description="URL to analyse")
 
 
 class PredictionResponse(BaseModel):
-    """Réponse de prédiction."""
-    
-    url: str = Field(..., description="URL analysée")
-    prediction: int = Field(..., description="0=légitime, 1=phishing")
-    label: str = Field(..., description="Label textuel de la prédiction")
-    confidence: float = Field(..., description="Confiance de la prédiction (0-1)")
-    proba_legitimate: float = Field(..., description="Probabilité légitime")
-    proba_phishing: float = Field(..., description="Probabilité phishing")
-    timestamp: str = Field(..., description="Timestamp de la prédiction")
+    url: str
+    prediction: int
+    label: str
+    confidence: float
+    proba_legitimate: float
+    proba_phishing: float
+    timestamp: str
 
 
 class HealthResponse(BaseModel):
-    """Réponse du health check."""
-    
-    status: str = Field(..., description="Statut du service")
-    model_loaded: bool = Field(..., description="Modèle chargé ou non")
-    timestamp: str = Field(..., description="Timestamp du check")
+    status: str
+    model_loaded: bool
+    timestamp: str
+
+
+# ── Startup ───────────────────────────────────────────────────────────────────
+
+def _load_feature_config() -> dict:
+    """Load the features section from configs/config.yaml using plain YAML."""
+    cfg_path = ROOT / "configs" / "config.yaml"
+    with open(cfg_path) as f:
+        cfg = yaml.safe_load(f)
+    return cfg["features"]
+
+
+def _models_dir() -> Path:
+    """Resolve the models directory relative to project root."""
+    return ROOT / "models"
 
 
 def load_model_artifacts() -> None:
-    """
-    Charge le modèle et les feature extractors au démarrage de l'API.
-    
-    Raises:
-        Exception: Si le chargement échoue
-    """
-    global model, feature_extractor, config
-    
-    logger.info("Chargement des artifacts du modèle...")
-    
-    try:
-        # Charger la configuration
-        config = load_config()
-        validate_config(config)
-        
-        models_dir = Path(config.paths.models_dir)
-        
-        # Charger le modèle
-        model_path = models_dir / config.model.default.save_name
-        model = load_joblib(model_path)
-        logger.info(f"✓ Modèle chargé: {model_path}")
-        
-        # Reconstruire le feature extractor
-        feature_extractor = URLFeatureExtractor(config.features)
-        
-        # Charger les vectorizers
-        if config.features.tfidf_word.use:
-            tfidf_word_path = models_dir / config.model.default.vectorizers.tfidf_word
-            feature_extractor.tfidf_word = load_joblib(tfidf_word_path)
-            logger.info(f"✓ TF-IDF mots chargé")
-        
-        if config.features.tfidf_char.use:
-            tfidf_char_path = models_dir / config.model.default.vectorizers.tfidf_char
-            feature_extractor.tfidf_char = load_joblib(tfidf_char_path)
-            logger.info(f"✓ TF-IDF char chargé")
-        
-        if config.features.lexical.use:
-            scaler_path = models_dir / config.model.default.vectorizers.scaler
-            feature_extractor.scaler = load_joblib(scaler_path)
-            logger.info(f"✓ Scaler chargé")
-        
-        feature_extractor.is_fitted = True
-        
-        logger.info("✓ Tous les artifacts chargés avec succès")
-        
-    except Exception as e:
-        logger.error(f"Erreur lors du chargement des artifacts: {e}")
-        raise
+    global model, feature_extractor
+
+    logger.info("Loading model artifacts...")
+    models_dir = _models_dir()
+
+    # Load trained classifier
+    model_path = models_dir / "best_model.pkl"
+    model = load_joblib(model_path)
+    logger.info(f"Model loaded from {model_path}")
+
+    # Load feature config and reconstruct extractor
+    feat_cfg = _load_feature_config()
+    feature_extractor = URLFeatureExtractor(feat_cfg)
+
+    if feat_cfg.get("tfidf_word", {}).get("use"):
+        feature_extractor.tfidf_word = load_joblib(models_dir / "tfidf_word.pkl")
+        logger.info("tfidf_word loaded")
+
+    if feat_cfg.get("tfidf_char", {}).get("use"):
+        feature_extractor.tfidf_char = load_joblib(models_dir / "tfidf_char.pkl")
+        logger.info("tfidf_char loaded")
+
+    if feat_cfg.get("lexical", {}).get("use"):
+        feature_extractor.scaler = load_joblib(models_dir / "scaler.pkl")
+        logger.info("scaler loaded")
+
+    feature_extractor.is_fitted = True
+    logger.info("All artifacts loaded successfully.")
 
 
 @app.on_event("startup")
 async def startup_event() -> None:
-    """
-    Événement de démarrage de l'API.
-    
-    Charge le modèle et les artifacts au démarrage.
-    """
-    logger.info("=" * 80)
-    logger.info("DÉMARRAGE DE L'API PHISHING DETECTION")
-    logger.info("=" * 80)
-    
+    logger.info("=" * 60)
+    logger.info("PHISHING DETECTION API — STARTUP")
+    logger.info("=" * 60)
     try:
         load_model_artifacts()
-        logger.info("✓ API prête à servir les requêtes")
+        logger.info("API ready.")
     except Exception as e:
-        logger.error(f"Échec du démarrage: {e}")
-        # En production, on pourrait vouloir arrêter l'app ici
-        raise
+        # Log but do NOT raise — FastAPI starts anyway; /health reports unhealthy
+        logger.error(f"Model loading failed: {e}", exc_info=True)
 
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @app.get("/", tags=["Root"])
-async def root() -> dict[str, str]:
-    """
-    Endpoint racine avec informations de base.
-    
-    Returns:
-        Informations sur l'API
-    """
+async def root() -> dict:
     return {
         "name": "Phishing Detection API",
         "version": "1.0.0",
-        "author": "Souleymane Sall",
-        "email": "sallsouleymane2207@gmail.com",
-        "endpoints": {
-            "health": "/health",
-            "predict": "/predict",
-            "docs": "/docs",
-        },
+        "endpoints": {"/health": "GET", "/predict": "POST", "/docs": "GET"},
     }
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check() -> HealthResponse:
-    """
-    Health check endpoint.
-    
-    Vérifie que l'API fonctionne et que le modèle est chargé.
-    
-    Returns:
-        Statut de santé de l'API
-    """
     return HealthResponse(
         status="healthy" if model is not None else "unhealthy",
         model_loaded=model is not None,
@@ -203,71 +158,54 @@ async def health_check() -> HealthResponse:
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(request: URLRequest) -> PredictionResponse:
-    """
-    Prédit si une URL est du phishing ou légitime.
-    
-    Args:
-        request: Requête contenant l'URL à analyser
-    
-    Returns:
-        Prédiction avec probabilités
-    
-    Raises:
-        HTTPException: Si le modèle n'est pas chargé ou si la prédiction échoue
-    """
-    # Vérifier que le modèle est chargé
     if model is None or feature_extractor is None:
-        logger.error("Modèle non chargé")
-        raise HTTPException(
-            status_code=503,
-            detail="Modèle non disponible. Service en cours d'initialisation.",
-        )
-    
+        raise HTTPException(status_code=503, detail="Model not loaded. Service initialising.")
+
     try:
-        # Logger la requête
-        logger.info(f"Prédiction demandée pour URL: {request.url}")
-        
-        # Transformer l'URL en features
+        logger.info(f"Predicting: {request.url}")
         X = feature_extractor.transform(pd.Series([request.url]))
-        
-        # Prédiction
-        prediction = int(model.predict(X)[0])
+
+        raw_pred    = model.predict(X)[0]
         probabilities = model.predict_proba(X)[0]
-        
-        # Préparer la réponse
-        response = PredictionResponse(
+
+        # Handle both int (0/1) and string ("good"/"bad") labels
+        LABEL_TO_INT = {"bad": 1, "good": 0}
+        prediction = (
+            int(raw_pred)
+            if isinstance(raw_pred, (int, np.integer))
+            else LABEL_TO_INT.get(str(raw_pred), 0)
+        )
+
+        # Map class order → proba indices
+        classes = list(model.classes_)
+        if isinstance(classes[0], (int, np.integer)):
+            idx_legit = classes.index(0) if 0 in classes else 0
+            idx_phish = classes.index(1) if 1 in classes else 1
+        else:
+            idx_legit = classes.index("good") if "good" in classes else 0
+            idx_phish = classes.index("bad")  if "bad"  in classes else 1
+
+        proba_legitimate = float(probabilities[idx_legit])
+        proba_phishing   = float(probabilities[idx_phish])
+        confidence       = proba_phishing if prediction == 1 else proba_legitimate
+
+        result = PredictionResponse(
             url=request.url,
             prediction=prediction,
             label="phishing" if prediction == 1 else "legitimate",
-            confidence=float(probabilities[prediction]),
-            proba_legitimate=float(probabilities[0]),
-            proba_phishing=float(probabilities[1]),
+            confidence=confidence,
+            proba_legitimate=proba_legitimate,
+            proba_phishing=proba_phishing,
             timestamp=datetime.utcnow().isoformat() + "Z",
         )
-        
-        # Logger le résultat
-        logger.info(f"Prédiction: {response.label} (confiance: {response.confidence:.2%})")
-        
-        return response
-        
+        logger.info(f"Result: {result.label} ({result.confidence:.2%})")
+        return result
+
     except Exception as e:
-        logger.error(f"Erreur lors de la prédiction: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la prédiction: {str(e)}",
-        )
+        logger.error(f"Prediction error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
     import uvicorn
-    
-    # Récupérer le port depuis les variables d'environnement
-    port = int(os.getenv("PORT", "8000"))
-    
-    # Lancer le serveur
-    uvicorn.run(
-        "api:app",
-        host="0.0.0.0",
-        port=port,
-        reload=False,
-    )
+    uvicorn.run("api:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=False)

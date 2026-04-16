@@ -632,59 +632,33 @@ def render_result(result: dict, url: str) -> None:
         "This URL appears legitimate. Stay vigilant — always verify sensitive sites independently."
     )
 
-    st.markdown(f"""
-    <div class="res-card {cls}">
-        <div class="res-top">
-            <span class="res-badge {cls}">{badge_txt}</span>
-            <div style="text-align:right">
-                <div class="res-conf-label">Confidence</div>
-                <div class="res-confidence {cls}">{conf_pct}</div>
-            </div>
-        </div>
-
-        <div class="res-url">
-            <span class="prompt">⟩</span>{url}
-        </div>
-
-        <div class="prob-section">
-            <div class="prob-row">
-                <div class="prob-header">
-                    <span>Legitimate</span>
-                    <span class="pct">{p_legit:.2%}</span>
-                </div>
-                <div class="prob-track">
-                    <div class="prob-fill legit" style="--w:{w_legit}"></div>
-                </div>
-            </div>
-            <div class="prob-row">
-                <div class="prob-header">
-                    <span>Phishing</span>
-                    <span class="pct">{p_phish:.2%}</span>
-                </div>
-                <div class="prob-track">
-                    <div class="prob-fill phish" style="--w:{w_phish}"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="stats-row">
-            <div class="stat-box">
-                <div class="stat-val cyan">{ts}</div>
-                <div class="stat-lbl">Timestamp</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val {'red' if is_phishing else 'green'}">{result['label'].upper()}</div>
-                <div class="stat-lbl">Classification</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val cyan">{len(url)}</div>
-                <div class="stat-lbl">URL Length</div>
-            </div>
-        </div>
-
-        <div class="res-msg {cls}">{msg}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="res-card {cls}">'
+        f'<div class="res-top">'
+        f'<span class="res-badge {cls}">{badge_txt}</span>'
+        f'<div style="text-align:right">'
+        f'<div class="res-conf-label">Confidence</div>'
+        f'<div class="res-confidence {cls}">{conf_pct}</div>'
+        f'</div></div>'
+        f'<div class="res-url"><span class="prompt">&#x27E9;</span>{url}</div>'
+        f'<div class="prob-section">'
+        f'<div class="prob-row">'
+        f'<div class="prob-header"><span>Legitimate</span><span class="pct">{p_legit:.2%}</span></div>'
+        f'<div class="prob-track"><div class="prob-fill legit" style="--w:{w_legit}"></div></div>'
+        f'</div>'
+        f'<div class="prob-row">'
+        f'<div class="prob-header"><span>Phishing</span><span class="pct">{p_phish:.2%}</span></div>'
+        f'<div class="prob-track"><div class="prob-fill phish" style="--w:{w_phish}"></div></div>'
+        f'</div></div>'
+        f'<div class="stats-row">'
+        f'<div class="stat-box"><div class="stat-val cyan">{ts}</div><div class="stat-lbl">Timestamp</div></div>'
+        f'<div class="stat-box"><div class="stat-val {"red" if is_phishing else "green"}">{result["label"].upper()}</div><div class="stat-lbl">Classification</div></div>'
+        f'<div class="stat-box"><div class="stat-val cyan">{len(url)}</div><div class="stat-lbl">URL Length</div></div>'
+        f'</div>'
+        f'<div class="res-msg {cls}">{msg}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_history(history: list) -> None:

@@ -1,61 +1,32 @@
-# NLP_phishing_detection_Project
+# NLP_phishing_detection_Project — dépendances de production
 # Auteur: Souleymane Sall
-# Email: sallsouleymane2207@gmail.com
 
-# ============================================
-# Core ML/NLP
-# ============================================
+# ML
 scikit-learn==1.5.2
 numpy==1.26.4
 pandas==2.2.3
 scipy==1.14.1
+joblib==1.4.2
 
-# ============================================
-# NLP & Feature Engineering
-# ============================================
+# NLP
 nltk==3.9.1
 
-# ============================================
-# Configuration Management
-# ============================================
+# Configuration
 hydra-core==1.3.2
 omegaconf==2.3.0
+pyyaml==6.0.2
 
-# ============================================
-# API & Serving
-# ============================================
+# API
 fastapi==0.115.0
 uvicorn[standard]==0.31.0
 pydantic==2.9.2
 python-multipart==0.0.12
 httpx==0.27.2
 
-# ============================================
-# User Interface
-# ============================================
+# Interface
 streamlit==1.39.0
 requests==2.32.3
 
-# ============================================
-# Utilities
-# ============================================
+# Utilitaires
 python-dotenv==1.0.1
-joblib==1.4.2
 tqdm==4.66.5
-
-# ============================================
-# Experiment Tracking (kept for local use)
-# ============================================
-mlflow==2.16.2
-optuna==3.6.1
-
-# ============================================
-# Data Acquisition
-# ============================================
-kaggle==1.6.17
-
-# ============================================
-# Visualization
-# ============================================
-matplotlib==3.9.2
-seaborn==0.13.2

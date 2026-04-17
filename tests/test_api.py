@@ -23,8 +23,6 @@ def test_root_endpoint():
     
     assert "name" in data
     assert "version" in data
-    assert "author" in data
-    assert data["author"] == "Souleymane Sall"
 
 
 def test_health_endpoint():

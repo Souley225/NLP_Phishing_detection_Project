@@ -8,6 +8,7 @@ Email: sallsouleymane2207@gmail.com
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.sparse
 
 from src.features.build_features import (
     URLFeatureExtractor,
@@ -171,8 +172,9 @@ def test_url_feature_extractor_fit_transform():
     
     assert extractor.is_fitted
     assert X.shape[0] == len(urls)
-    assert X.shape[1] > 0  # Au moins quelques features
-    assert isinstance(X, np.ndarray)
+    assert X.shape[1] > 0
+    # Le pipeline retourne une matrice CSR sparse (sp.hstack)
+    assert scipy.sparse.issparse(X)
 
 
 def test_url_feature_extractor_transform_without_fit():

@@ -1,0 +1,29 @@
+# NLP_phishing_detection_Project — dépendances de développement
+# Non incluses dans le conteneur de production.
+# Auteur: Souleymane Sall
+
+# Expérimentation
+mlflow==2.16.2
+optuna==3.6.1
+
+# Données
+kaggle==1.6.17
+
+# Visualisation
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# Tests
+pytest==8.3.3
+pytest-cov==5.0.0
+httpx==0.27.2
+
+# Tests E2E
+playwright==1.48.0
+
+# Qualité du code
+ruff==0.7.0
+mypy==1.13.0
+
+# Notebook
+ipykernel==6.29.5

@@ -1,18 +1,18 @@
 """
-Module de gestion de la configuration via Hydra.
-
-Ce module charge et valide la configuration du projet en utilisant Hydra.
-Toutes les configurations sont centralisées dans le dossier configs/.
+Gestion de la configuration via Hydra.
 
 Auteur: Souleymane Sall
 Email: sallsouleymane2207@gmail.com
 """
 
+import logging
 from pathlib import Path
 from typing import Any
 
 from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig, OmegaConf
+
+logger = logging.getLogger(__name__)
 
 
 def load_config(config_name: str = "config", overrides: list[str] | None = None) -> DictConfig:
@@ -99,17 +99,12 @@ def get_config_value(cfg: DictConfig, key: str, default: Any = None) -> Any:
 
 
 def print_config(cfg: DictConfig) -> None:
-    """
-    Affiche la configuration de manière lisible.
-    
-    Args:
-        cfg: Configuration Hydra à afficher
-    """
-    print("=" * 80)
-    print("CONFIGURATION CHARGÉE")
-    print("=" * 80)
-    print(OmegaConf.to_yaml(cfg))
-    print("=" * 80)
+    """Affiche la configuration via le logger."""
+    logger.info("=" * 80)
+    logger.info("CONFIGURATION CHARGEE")
+    logger.info("=" * 80)
+    logger.info("\n%s", OmegaConf.to_yaml(cfg))
+    logger.info("=" * 80)
 
 
 def save_config(cfg: DictConfig, output_path: Path) -> None:

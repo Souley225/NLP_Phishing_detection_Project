@@ -141,3 +141,9 @@ temp/
 *.tmp
 *.bak
 *.swp
+
+# ============================================
+# Tests artifacts
+# ============================================
+tests/screenshots/
+.playwright-mcp/

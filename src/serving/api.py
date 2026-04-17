@@ -53,6 +53,7 @@ app.add_middleware(
 
 model: Any = None
 feature_extractor: URLFeatureExtractor | None = None
+_threshold: float = 0.5
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -93,34 +94,42 @@ def _models_dir() -> Path:
 
 
 def load_model_artifacts() -> None:
-    global model, feature_extractor
+    global model, feature_extractor, _threshold
 
-    logger.info("Loading model artifacts...")
+    logger.info("Chargement des artefacts du modele...")
     models_dir = _models_dir()
 
-    # Load trained classifier
     model_path = models_dir / "best_model.pkl"
     model = load_joblib(model_path)
-    logger.info(f"Model loaded from {model_path}")
+    logger.info("Modele charge depuis %s", model_path)
 
-    # Load feature config and reconstruct extractor
     feat_cfg = _load_feature_config()
     feature_extractor = URLFeatureExtractor(feat_cfg)
 
     if feat_cfg.get("tfidf_word", {}).get("use"):
         feature_extractor.tfidf_word = load_joblib(models_dir / "tfidf_word.pkl")
-        logger.info("tfidf_word loaded")
 
     if feat_cfg.get("tfidf_char", {}).get("use"):
         feature_extractor.tfidf_char = load_joblib(models_dir / "tfidf_char.pkl")
-        logger.info("tfidf_char loaded")
 
     if feat_cfg.get("lexical", {}).get("use"):
         feature_extractor.scaler = load_joblib(models_dir / "scaler.pkl")
-        logger.info("scaler loaded")
 
     feature_extractor.is_fitted = True
-    logger.info("All artifacts loaded successfully.")
+
+    # Charger le seuil de decision optimise (genere par train_for_deploy.py)
+    threshold_path = models_dir / "threshold.json"
+    if threshold_path.exists():
+        import json
+        with open(threshold_path) as f:
+            thr = json.load(f)
+        _threshold = float(thr.get("threshold", 0.5))
+        logger.info("Seuil de decision: %.2f (F1=%.4f)", _threshold, thr.get("f1", 0.0))
+    else:
+        _threshold = 0.5
+        logger.warning("threshold.json introuvable, seuil par defaut: 0.5")
+
+    logger.info("Artefacts charges.")
 
 
 @app.on_event("startup")
@@ -162,21 +171,11 @@ async def predict(request: URLRequest) -> PredictionResponse:
         raise HTTPException(status_code=503, detail="Model not loaded. Service initialising.")
 
     try:
-        logger.info(f"Predicting: {request.url}")
+        logger.info("Prediction: %s", request.url)
         X = feature_extractor.transform(pd.Series([request.url]))
-
-        raw_pred    = model.predict(X)[0]
         probabilities = model.predict_proba(X)[0]
 
-        # Handle both int (0/1) and string ("good"/"bad") labels
-        LABEL_TO_INT = {"bad": 1, "good": 0}
-        prediction = (
-            int(raw_pred)
-            if isinstance(raw_pred, (int, np.integer))
-            else LABEL_TO_INT.get(str(raw_pred), 0)
-        )
-
-        # Map class order → proba indices
+        # Indices des classes dans l'ordre retourne par scikit-learn
         classes = list(model.classes_)
         if isinstance(classes[0], (int, np.integer)):
             idx_legit = classes.index(0) if 0 in classes else 0
@@ -187,7 +186,10 @@ async def predict(request: URLRequest) -> PredictionResponse:
 
         proba_legitimate = float(probabilities[idx_legit])
         proba_phishing   = float(probabilities[idx_phish])
-        confidence       = proba_phishing if prediction == 1 else proba_legitimate
+
+        # Appliquer le seuil optimise plutot que 0.5
+        prediction = 1 if proba_phishing >= _threshold else 0
+        confidence = proba_phishing if prediction == 1 else proba_legitimate
 
         result = PredictionResponse(
             url=request.url,

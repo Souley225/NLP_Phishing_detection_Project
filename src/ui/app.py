@@ -530,7 +530,8 @@ def inject_css() -> None:
 
 @st.cache_resource(show_spinner="Loading threat detection model…")
 def load_model():
-    """Load model + feature extractors once; cache for the lifetime of the app."""
+    """Charge le modele, les vectorizers et le seuil de decision. Mis en cache."""
+    import json
     import joblib
     from src.features.build_features import URLFeatureExtractor
 
@@ -551,7 +552,14 @@ def load_model():
         extractor.scaler = joblib.load(models_dir / "scaler.pkl")
     extractor.is_fitted = True
 
-    return model, extractor
+    threshold_path = models_dir / "threshold.json"
+    if threshold_path.exists():
+        with open(threshold_path) as f:
+            threshold = float(json.load(f).get("threshold", 0.5))
+    else:
+        threshold = 0.5
+
+    return model, extractor, threshold
 
 
 def is_model_ready() -> bool:
@@ -564,20 +572,11 @@ def is_model_ready() -> bool:
 
 def predict_url(url: str) -> dict | None:
     try:
-        model, extractor = load_model()
+        model, extractor, threshold = load_model()
         X = extractor.transform(pd.Series([url]))
-
-        raw_pred      = model.predict(X)[0]
         probabilities = model.predict_proba(X)[0]
 
-        LABEL_TO_INT = {"bad": 1, "good": 0}
-        prediction = (
-            int(raw_pred)
-            if isinstance(raw_pred, (int, np.integer))
-            else LABEL_TO_INT.get(str(raw_pred), 0)
-        )
-
-        classes   = list(model.classes_)
+        classes = list(model.classes_)
         if isinstance(classes[0], (int, np.integer)):
             idx_legit = classes.index(0) if 0 in classes else 0
             idx_phish = classes.index(1) if 1 in classes else 1
@@ -587,6 +586,9 @@ def predict_url(url: str) -> dict | None:
 
         proba_legit = float(probabilities[idx_legit])
         proba_phish = float(probabilities[idx_phish])
+
+        # Seuil optimise pour limiter les faux positifs
+        prediction  = 1 if proba_phish >= threshold else 0
         confidence  = proba_phish if prediction == 1 else proba_legit
 
         return {

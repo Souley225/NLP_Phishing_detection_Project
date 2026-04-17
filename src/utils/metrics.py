@@ -1,12 +1,11 @@
 """
 Calcul des métriques de performance pour la classification.
 
-Ce module fournit des fonctions pour calculer et afficher
-les métriques d'évaluation des modèles de classification.
-
 Auteur: Souleymane Sall
 Email: sallsouleymane2207@gmail.com
 """
+
+import logging
 
 import numpy as np
 from sklearn.metrics import (
@@ -19,6 +18,8 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_metrics(
@@ -137,22 +138,49 @@ def calculate_class_metrics(
 
 
 def print_metrics(metrics: dict[str, float], title: str = "Métriques") -> None:
-    """
-    Affiche les métriques de manière formatée.
-    
-    Args:
-        metrics: Dictionnaire de métriques
-        title: Titre à afficher
-    """
-    print(f"\n{'=' * 60}")
-    print(f"{title:^60}")
-    print(f"{'=' * 60}")
-    
+    """Affiche les métriques via le logger."""
+    lines = [f"\n{'=' * 60}", f"{title:^60}", f"{'=' * 60}"]
     for metric_name, value in metrics.items():
-        metric_label = metric_name.replace("_", " ").title()
-        print(f"{metric_label:<30} : {value:>8.4f}")
-    
-    print(f"{'=' * 60}\n")
+        label = metric_name.replace("_", " ").title()
+        lines.append(f"{label:<30} : {value:>8.4f}")
+    lines.append(f"{'=' * 60}")
+    logger.info("\n".join(lines))
+
+
+def find_optimal_threshold(
+    y_true: np.ndarray,
+    y_proba: np.ndarray,
+) -> dict[str, float]:
+    """
+    Cherche le seuil de décision qui maximise le F1 sur l'ensemble de validation.
+
+    Itère de 0.10 à 0.90 par pas de 0.01.
+
+    Args:
+        y_true: Vraies étiquettes (0 ou 1)
+        y_proba: Probabilités — vecteur 1D ou matrice (n, 2)
+
+    Returns:
+        Dictionnaire avec threshold, f1, precision, recall au meilleur seuil
+    """
+    # Garder uniquement les probas de la classe positive
+    if y_proba.ndim == 2:
+        y_proba = y_proba[:, 1]
+
+    best: dict[str, float] = {"threshold": 0.5, "f1": 0.0, "precision": 0.0, "recall": 0.0}
+
+    for t in np.arange(0.10, 0.91, 0.01):
+        y_pred = (y_proba >= t).astype(int)
+        f1 = float(f1_score(y_true, y_pred, zero_division=0))
+        if f1 > best["f1"]:
+            best = {
+                "threshold": round(float(t), 2),
+                "f1": f1,
+                "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+                "recall": float(recall_score(y_true, y_pred, zero_division=0)),
+            }
+
+    return best
 
 
 def format_metrics_for_mlflow(metrics: dict[str, float]) -> dict[str, float]:

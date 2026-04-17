@@ -52,7 +52,7 @@ def load_model_and_extractors(cfg: any) -> tuple:
     # Charger le modèle
     model_path = models_dir / cfg.model.default.save_name
     model = load_joblib(model_path)
-    logger.info(f"✓ Modèle chargé: {model_path}")
+    logger.info("Modele charge: %s", model_path)
     
     # Reconstruire le feature extractor
     feature_extractor = URLFeatureExtractor(cfg.features)
@@ -61,17 +61,17 @@ def load_model_and_extractors(cfg: any) -> tuple:
     if cfg.features.tfidf_word.use:
         tfidf_word_path = models_dir / cfg.model.default.vectorizers.tfidf_word
         feature_extractor.tfidf_word = load_joblib(tfidf_word_path)
-        logger.info(f"✓ TF-IDF mots chargé: {tfidf_word_path}")
+        logger.info("TF-IDF mots charge: %s", tfidf_word_path)
     
     if cfg.features.tfidf_char.use:
         tfidf_char_path = models_dir / cfg.model.default.vectorizers.tfidf_char
         feature_extractor.tfidf_char = load_joblib(tfidf_char_path)
-        logger.info(f"✓ TF-IDF char chargé: {tfidf_char_path}")
+        logger.info("TF-IDF char charge: %s", tfidf_char_path)
     
     if cfg.features.lexical.use:
         scaler_path = models_dir / cfg.model.default.vectorizers.scaler
         feature_extractor.scaler = load_joblib(scaler_path)
-        logger.info(f"✓ Scaler chargé: {scaler_path}")
+        logger.info("Scaler charge: %s", scaler_path)
     
     feature_extractor.is_fitted = True
     
@@ -104,7 +104,7 @@ def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, save_path: Pat
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
     
-    logger.info(f"✓ Matrice de confusion sauvegardée: {save_path}")
+    logger.info("Matrice de confusion sauvegardee: %s", save_path)
 
 
 def plot_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, save_path: Path) -> None:
@@ -140,7 +140,7 @@ def plot_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, save_path: Path) -> 
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
     
-    logger.info(f"✓ Courbe ROC sauvegardée: {save_path}")
+    logger.info("Courbe ROC sauvegardee: %s", save_path)
 
 
 def main() -> None:
@@ -194,8 +194,8 @@ def main() -> None:
         y_pred,
         target_names=["Légitime", "Phishing"],
     )
-    print(report)
-    
+    logger.info("\n%s", report)
+
     # Créer le répertoire pour les figures
     models_dir = Path(cfg.paths.models_dir)
     ensure_dir(models_dir)
@@ -208,7 +208,7 @@ def main() -> None:
     plot_roc_curve(y_test, y_proba, roc_path)
     
     logger.info("=" * 80)
-    logger.info("✓ ÉVALUATION TERMINÉE")
+    logger.info("EVALUATION TERMINEE")
     logger.info("=" * 80)
 
 

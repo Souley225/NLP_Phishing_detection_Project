@@ -1,135 +1,231 @@
 ---
 title: NLP Phishing Detection
-emoji: 🛡️
 colorFrom: red
 colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: true
 license: mit
-short_description: Detect phishing URLs with NLP (TF-IDF + Logistic Regression)
+short_description: Detect phishing URLs with NLP (TF-IDF + LinearSVC, F1=95.5%)
 ---
 
-# Détection de Phishing 
+# PhishGuard — Détection de Phishing par NLP
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.39-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![MLflow](https://img.shields.io/badge/MLflow-2.16-0194E2?logo=mlflow&logoColor=white)](https://mlflow.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![HF Space](https://img.shields.io/badge/Demo-HF%20Space-FFD21E?logo=huggingface&logoColor=black)](https://sallsou-nlp-phishing-detection.hf.space)
+[![License](https://img.shields.io/badge/License-MIT-22c55e?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
-Systeme de detection de phishing par analyse textuelle d'URLs utilisant le NLP et le Machine Learning. Precision de **97%+** sur 549 000 URLs.
+Système de détection de phishing par analyse textuelle d'URLs. Analyse instantanée basée uniquement sur la structure de l'URL — aucun appel DNS, aucune requête réseau. **F1-Score de 95.5%** sur 549 000 URLs.
+
+**Demo live :** [sallsou-nlp-phishing-detection.hf.space](https://sallsou-nlp-phishing-detection.hf.space)
 
 ---
 
-## Table des matieres
+## Table des matières
 
-- [Fonctionnalites](#fonctionnalites)
-- [Architecture](#architecture)
+- [Fonctionnalités](#fonctionnalités)
+- [Pipeline NLP](#pipeline-nlp)
+- [Architecture système](#architecture-système)
 - [Installation](#installation)
 - [Utilisation](#utilisation)
 - [API](#api)
-- [Deploiement](#deploiement)
 - [Performances](#performances)
+- [Déploiement](#déploiement)
 - [Stack technique](#stack-technique)
+- [Structure du projet](#structure-du-projet)
+- [Dataset](#dataset)
 - [Contact](#contact)
 
 ---
 
-## Fonctionnalites
+## Fonctionnalités
 
-| Fonctionnalite | Description |
+| Fonctionnalité | Description |
 |----------------|-------------|
-| **Detection autonome** | Analyse basee uniquement sur la chaine URL, sans appel externe |
-| **API REST** | Endpoint FastAPI pour integration |
-| **Interface web** | Dashboard Streamlit pour tests manuels |
-| **Tracking ML** | Suivi des experiences avec MLflow |
-| **Optimisation auto** | Recherche d'hyperparametres via Optuna |
-| **Deploiement cloud** | Configuration Render prete |
+| **Analyse autonome** | Basée uniquement sur la chaîne URL, sans appel DNS ni réseau |
+| **Normalisation URL** | Canonicalisation automatique (scheme, trailing slash) pour résultats cohérents |
+| **Seuil optimal** | Threshold calibré sur la validation (0.51) pour maximiser le F1 |
+| **API REST** | Endpoint FastAPI pour intégration programmatique |
+| **Interface mobile** | Dashboard Streamlit mobile-first pour tests manuels |
+| **CI/CD** | Déploiement automatique via GitHub Actions vers HF Space |
 
 ---
 
-## Architecture
+## Pipeline NLP
+
+Diagramme interactif : [Voir sur Excalidraw](https://excalidraw.com/#json=neIVqIaK1OPgjBa4hevYi,ZHXNqRdOpOxseFj2re--qw)
 
 ```
-URL → Extraction Features → Modele ML → Prediction
-         │
-         ├── TF-IDF mots (5000 features)
-         ├── TF-IDF caracteres (3000 features)
-         └── Features lexicales (16 features)
+URL saisie
+    │
+    ▼
+_normalize_url()          # Ajout https://, canonicalisation slash final
+    │
+    ├──────────────────────────────────────────┐────────────────────────┐
+    ▼                                          ▼                        ▼
+TF-IDF Mots                          TF-IDF Caractères         Features Lexicales
+bigrammes [1,2]                      4-grammes [2,4]           16 features
+20 000 features                      15 000 features           (longueur, entropie,
+                                                                IP, TLD, sous-domaines…)
+    │                                          │                        │
+    └──────────────────────────────────────────┘────────────────────────┘
+                                    │
+                                    ▼
+                        scipy.sparse.hstack
+                        35 016 features (sparse CSR)
+                                    │
+                                    ▼
+                    CalibratedClassifierCV
+                    LinearSVC (C=0.5, max_iter=2000)
+                    calibration isotonic sur validation
+                                    │
+                              proba_phishing
+                                    │
+                         seuil optimal : 0.51
+                                    │
+                      ┌─────────────┴─────────────┐
+                      ▼                           ▼
+                  PHISHING                    LEGITIME
 ```
 
-**Features extraites :**
-- Longueur, entropie, ratio chiffres
-- Nombre de sous-domaines, profondeur du chemin
-- Presence d'IP, TLD suspect
-- Caracteres speciaux (@, ?, &, =)
+**Features lexicales extraites :**
+
+| Feature | Description |
+|---------|-------------|
+| `url_length` | Longueur totale de l'URL |
+| `entropy` | Entropie de Shannon — URLs aléatoires ont une entropie élevée |
+| `has_ip` | Présence d'une adresse IP dans le domaine |
+| `suspicious_tld` | TLD dans une liste noire (.tk, .ml, .ga, .cf…) |
+| `subdomain_count` | Nombre de sous-domaines |
+| `path_depth` | Profondeur du chemin (`/a/b/c` = 3) |
+| `digit_ratio` | Proportion de chiffres dans l'URL |
+| `num_at`, `num_question`, `num_ampersand`, `num_equal` | Caractères spéciaux suspects |
+
+---
+
+## Architecture système
+
+Diagramme interactif : [Voir sur Excalidraw](https://excalidraw.com/#json=-lLaTNyKAGgYyJrXUNoeJ,02Jbhm79Op7Z5YtX2vnLBg)
+
+```
+                        ┌─────────────────────────────────┐
+                        │         Utilisateur              │
+                        └──────────────┬──────────────────┘
+                                       │
+                    ┌──────────────────┼──────────────────┐
+                    ▼                                     ▼
+          Streamlit UI :8501                    FastAPI REST :8000
+          (interface mobile)                   /predict  /health
+                    │                                     │
+                    └──────────────┬──────────────────────┘
+                                   ▼
+                        ┌──────────────────┐
+                        │  _normalize_url()│
+                        └────────┬─────────┘
+                                 │
+                        ┌────────▼─────────┐
+                        │ URLFeatureExtract│
+                        │ TF-IDF + Lexical │
+                        └────────┬─────────┘
+                                 │
+                        ┌────────▼─────────┐
+                        │  LinearSVC +     │
+                        │  Calibration     │
+                        │  threshold=0.51  │
+                        └────────┬─────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    ▼                         ▼
+                PHISHING                  LEGITIME
+
+                        Artefacts partagés (models/)
+                        ├── best_model.pkl      (789 KB)
+                        ├── tfidf_word.pkl      (235 KB)
+                        ├── tfidf_char.pkl      (164 KB)
+                        ├── scaler.pkl
+                        └── threshold.json
+
+              GitHub master ──► GitHub Actions ──► HF Space (Docker)
+```
 
 ---
 
 ## Installation
 
-### Prerequis
+### Prérequis
 
 - Python 3.11+
-- Compte Kaggle (pour le dataset)
-- Docker (optionnel)
+- Compte Kaggle (pour télécharger le dataset)
+- Docker (optionnel, pour la prod)
 
-### Etapes
+### Étapes
 
 ```bash
 # Cloner
-git clone https://github.com/Souley225/NLP_phishing_detection_Project.git
-cd NLP_phishing_detection_Project
+git clone https://github.com/Souley225/NLP_Phishing_detection_Project.git
+cd NLP_Phishing_detection_Project
 
 # Environnement virtuel
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # Linux/Mac
+source .venv/bin/activate       # Linux/Mac
+.venv\Scripts\activate          # Windows
 
-# Dependances
+# Dépendances production
 pip install -r requirements.txt
 
-# Configuration Kaggle
-# Creer ~/.kaggle/kaggle.json avec vos identifiants
+# Dépendances dev (tests, MLflow, Optuna…)
+pip install -r requirements-dev.txt
 
-# Variables d'environnement
-cp .env.example .env
+# Configuration Kaggle
+# Créer ~/.kaggle/kaggle.json avec {"username": "...", "key": "..."}
 ```
 
 ---
 
 ## Utilisation
 
-### Commandes principales
+### Téléchargement et préparation des données
 
 ```bash
-make download    # Telecharger le dataset
-make train       # Entrainer le modele
-make evaluate    # Evaluer les performances
-make serve       # Lancer l'API (port 8000)
-make ui          # Lancer l'interface (port 8501)
-make mlflow      # Lancer MLflow UI (port 5000)
+python src/data/download_data.py     # Télécharge depuis Kaggle
+python src/data/make_dataset.py      # Découpe train/val/test
 ```
 
-### Prediction directe
+### Réentraînement complet
 
 ```bash
-# URL unique
-python src/models/predict.py --text "http://paypal-secure.tk/login"
-
-# Batch depuis fichier
-python src/models/predict.py --input urls.csv --output predictions.csv
+python scripts/train_for_deploy.py
 ```
 
-### Personnalisation
+Ce script :
+1. Charge `configs/config.yaml` et `configs/model/default.yaml` sans Hydra
+2. Extrait les 35 016 features (TF-IDF word + char + lexicales)
+3. Entraîne `LinearSVC` enveloppé dans `CalibratedClassifierCV`
+4. Recherche le seuil optimal sur la validation
+5. Sauvegarde tous les artefacts dans `models/`
+
+### Lancer les services
 
 ```bash
-python src/models/train.py train.n_trials=100    # Plus d'iterations Optuna
-python src/models/train.py model.max_iter=300    # Iterations modele
-python src/models/train.py train.seed=42         # Seed custom
+# API FastAPI
+uvicorn src.serving.api:app --port 8000
+
+# Interface Streamlit
+streamlit run src/ui/app.py --server.port 8501
+
+# Docker (API + UI ensemble)
+docker compose up --build
+```
+
+### Tests
+
+```bash
+pytest tests/ -v
+pytest tests/ --cov=src --cov-report=html
 ```
 
 ---
@@ -140,84 +236,106 @@ Base URL : `http://localhost:8000`
 
 ### Endpoints
 
-| Methode | Endpoint | Description |
+| Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| GET | `/health` | Verification de sante |
-| POST | `/predict` | Prediction sur URL |
-| GET | `/docs` | Documentation Swagger |
+| GET | `/health` | Vérification de l'état du service |
+| POST | `/predict` | Prédiction sur une URL |
+| GET | `/docs` | Documentation Swagger interactive |
 
 ### Exemple
 
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"url": "http://paypal-verify.tk/account"}'
+  -d '{"url": "http://paypal-verify.tk/account/confirm"}'
 ```
 
-**Reponse :**
+**Réponse :**
 ```json
 {
-  "url": "http://paypal-verify.tk/account",
+  "url": "https://paypal-verify.tk/account/confirm",
   "prediction": 1,
   "label": "phishing",
-  "proba_phishing": 0.94,
-  "proba_legitimate": 0.06
+  "proba_phishing": 0.97,
+  "proba_legitimate": 0.03
 }
 ```
 
 ---
 
-## Deploiement
+## Performances
 
-### Docker
+Évaluées sur le jeu de test (20% du dataset, 109 807 URLs), seuil calibré à **0.51** :
 
-```bash
-# Local
-docker compose up --build
+| Métrique | Score |
+|----------|-------|
+| **F1-Score** | **95.5%** |
+| **Précision** (phishing) | **96.7%** |
+| **Rappel** (phishing) | **94.3%** |
+| Amélioration vs baseline | +2.85 pts F1 |
 
-# Services disponibles :
-# API      → http://localhost:8000
-# UI       → http://localhost:8501
-# MLflow   → http://localhost:5000
-```
+**Comparaison des approches testées :**
 
-### Render
+| Modèle | Features | F1 | Notes |
+|--------|----------|----|-------|
+| LogisticRegression | 8k | 92.6% | Baseline |
+| RandomForest 300 arbres | 80k | — | OOM — matrice 355k × 80k trop dense |
+| **LinearSVC + CalibratedCV** | **35k** | **95.5%** | Actuel — efficace sur sparse |
 
-1. Pousser le code sur GitHub
-2. Connecter le repo sur [render.com](https://render.com)
-3. Le fichier `render.yaml` configure automatiquement :
-   - Service API (`phishing-api`)
-   - Service UI (`phishing-ui`)
-4. Ajouter les variables `KAGGLE_USERNAME` et `KAGGLE_KEY`
+**Latence (CPU, sans GPU) :**
+- 1 URL : < 5 ms
+- 1 000 URLs en batch : < 500 ms
+
+> Le modèle analyse uniquement la syntaxe de l'URL. Des patterns de contournement (URLs légitimes avec beaucoup de paramètres, nouveaux TLDs) restent des limites connues du jeu de données Kaggle utilisé.
 
 ---
 
-## Performances
+## Déploiement
 
-| Metrique | Score |
-|----------|-------|
-| Precision globale | 97.2% |
-| Precision (phishing) | 96.8% |
-| Rappel (phishing) | 97.6% |
-| F1-Score | 97.2% |
-| ROC-AUC | 99.1% |
+### Docker local
 
-**Latence :**
-- 1 URL : < 5ms
-- 1000 URLs : < 500ms
+```bash
+docker compose up --build
+# API  → http://localhost:8000
+# UI   → http://localhost:8501
+```
+
+### Hugging Face Space (production)
+
+Le déploiement est entièrement automatisé via **GitHub Actions** :
+
+```
+git push origin master
+    │
+    ▼
+.github/workflows/  ──►  huggingface_hub.upload_folder()
+                              │
+                              ▼
+                    HF Space (Docker SDK)
+                    https://sallsou-nlp-phishing-detection.hf.space
+```
+
+Le workflow push le code source ET les artefacts `models/*.pkl` + `models/threshold.json` vers le Space. Le Dockerfile reconstruit l'image à chaque push.
+
+Pour déclencher manuellement un redéploiement des artefacts après réentraînement :
+
+```bash
+python scripts/upload_to_hf.py   # ou via GitHub Actions "Run workflow"
+```
 
 ---
 
 ## Stack technique
 
-| Categorie | Technologies |
+| Catégorie | Technologies |
 |-----------|--------------|
-| **ML/NLP** | scikit-learn, Optuna, pandas, numpy |
-| **MLOps** | MLflow, Hydra |
+| **ML/NLP** | scikit-learn, LinearSVC, CalibratedClassifierCV, TF-IDF, scipy.sparse |
+| **Feature engineering** | tldextract, numpy, pandas |
 | **API** | FastAPI, Uvicorn, Pydantic |
-| **UI** | Streamlit |
-| **DevOps** | Docker, Docker Compose, Render |
-| **Qualite** | pytest, ruff, black, mypy |
+| **UI** | Streamlit (mobile-first) |
+| **DevOps** | Docker, Docker Compose, GitHub Actions, HF Space |
+| **Config** | Hydra (expérimentation), YAML natif (déploiement) |
+| **Qualité** | pytest, ruff |
 
 ---
 
@@ -225,49 +343,58 @@ docker compose up --build
 
 ```
 .
+├── configs/
+│   ├── config.yaml            # Config principale (features, paths, data)
+│   ├── model/default.yaml     # LinearSVC params
+│   └── train/default.yaml     # Seed, epochs
+├── models/                    # Artefacts entraînés
+│   ├── best_model.pkl         # CalibratedClassifierCV(LinearSVC)
+│   ├── tfidf_word.pkl         # Vectorizer mots (20k bigrammes)
+│   ├── tfidf_char.pkl         # Vectorizer chars (15k 4-grammes)
+│   ├── scaler.pkl             # StandardScaler (features lexicales)
+│   └── threshold.json         # Seuil optimal { "threshold": 0.51, "f1": 0.955 }
+├── scripts/
+│   ├── train_for_deploy.py    # Réentraînement sans MLflow/Hydra
+│   └── e2e_test_deployed.py   # Tests E2E sur le Space déployé
 ├── src/
-│   ├── data/          # Acquisition des donnees
-│   ├── features/      # Feature engineering
-│   ├── models/        # Entrainement, evaluation, prediction
-│   ├── serving/       # API FastAPI
-│   ├── ui/            # Interface Streamlit
-│   └── utils/         # Utilitaires
-├── configs/           # Configuration Hydra
-├── tests/             # Tests unitaires
+│   ├── data/                  # Acquisition et split des données
+│   ├── features/              # URLFeatureExtractor (TF-IDF + lexical)
+│   ├── models/                # Entraînement, évaluation (avec MLflow/Optuna)
+│   ├── serving/               # API FastAPI
+│   ├── ui/                    # Interface Streamlit
+│   └── utils/                 # io_utils, metrics, logging
+├── tests/                     # Tests unitaires
 ├── Dockerfile
 ├── docker-compose.yml
-├── render.yaml
-├── Makefile
-└── requirements.txt
-```
-
----
-
-## Tests
-
-```bash
-pytest tests/ -v                              # Tests complets
-pytest tests/ --cov=src --cov-report=html     # Avec couverture
+├── requirements.txt           # Dépendances production
+├── requirements-dev.txt       # Dépendances dev (MLflow, Optuna, pytest…)
+└── Makefile
 ```
 
 ---
 
 ## Dataset
 
-Source : [Kaggle - Phishing Site URLs](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
-- 549 000 URLs
-- 50% phishing, 50% legitimes
+Source : [Kaggle — Phishing Site URLs](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls) (taruntiwarihp)
+
+| Statistique | Valeur |
+|-------------|--------|
+| Total URLs | 549 346 |
+| Phishing | ~274 000 (50%) |
+| Légitimes | ~275 000 (50%) |
+| Train | 355 036 |
+| Validation | 50 719 |
+| Test | 109 807 (20%) |
 
 ---
 
 ## Contact
 
-**Souleymane Sall**  
-📧 sallsouleymane2207@gmail.com  
-💼 [LinkedIn](www.linkedin.com/in/souleymanes-sall)  
-🐙 [Meduim](medium.com/@sallsouleymane66)
+**Souleymane Sall**
 
-N'hésitez pas à me contacter si vous avez des questions ou des suggestions !
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-souleymanes--sall-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/souleymanes-sall/)
+[![GitHub](https://img.shields.io/badge/GitHub-Souley225-181717?logo=github&logoColor=white)](https://github.com/Souley225)
+[![Email](https://img.shields.io/badge/Email-sallsouleymane2207%40gmail.com-EA4335?logo=gmail&logoColor=white)](mailto:sallsouleymane2207@gmail.com)
 
 ---
 
@@ -276,16 +403,17 @@ N'hésitez pas à me contacter si vous avez des questions ou des suggestions !
 **Dataset**
 - [Phishing Site URLs sur Kaggle](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
 
-**Articles de recherche qui m'ont inspiré**
+**Articles de référence**
 - [BERT for Phishing Detection](https://www.sciencedirect.com/science/article/pii/S1877050921014368)
-- [URL-based Features](https://pmc.ncbi.nlm.nih.gov/articles/PMC8935623/)
+- [URL-based Features for Phishing Detection](https://pmc.ncbi.nlm.nih.gov/articles/PMC8935623/)
 - [Hybrid NLP Approach](https://www.mdpi.com/2079-9292/11/22/3647)
 
 **Documentation**
 - [FastAPI](https://fastapi.tiangolo.com/)
-- [MLflow](https://mlflow.org/docs/latest/index.html)
-- [scikit-learn](https://scikit-learn.org/stable/)
+- [scikit-learn — LinearSVC](https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html)
+- [scikit-learn — CalibratedClassifierCV](https://scikit-learn.org/stable/modules/generated/sklearn.calibration.CalibratedClassifierCV.html)
+- [Streamlit](https://docs.streamlit.io/)
 
 ---
 
-*Ce README est régulièrement mis à jour. Dernière modification : Octobre 2025*
+*Dernière mise à jour : avril 2026*

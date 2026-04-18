@@ -45,9 +45,12 @@ def normalize_url(url: str) -> str:
     url = url.strip()
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
-    parsed = urlparse(url)
-    if parsed.path in ("", "/") and not parsed.query and not parsed.fragment:
-        url = urlunparse(parsed._replace(path=""))
+    try:
+        parsed = urlparse(url)
+        if parsed.path in ("", "/") and not parsed.query and not parsed.fragment:
+            url = urlunparse(parsed._replace(path=""))
+    except ValueError:
+        pass
     return url
 
 

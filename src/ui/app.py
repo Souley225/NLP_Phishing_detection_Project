@@ -803,11 +803,11 @@ def render_guide() -> None:
 def render_result(result: dict, url: str) -> None:
     is_phishing = result["prediction"] == 1
     cls         = "danger" if is_phishing else "success"
-    verdict     = "Lien suspect — Phishing probable" if is_phishing else "Lien legitime"
+    verdict     = "Lien signale comme suspect" if is_phishing else "Aucun indicateur suspect detecte"
     verdict_sub = (
-        "Ce lien presente des caracteristiques typiques d'une tentative de phishing."
+        "Le modele a releve des caracteristiques associees au phishing. Une verification manuelle est recommandee."
         if is_phishing else
-        "Aucun indicateur de phishing detecte sur ce lien."
+        "Le modele n'a pas identifie de caracteristiques suspectes sur cette URL."
     )
     conf_pct = f"{result['confidence']:.0%}"
     p_legit  = result["proba_legitimate"]
@@ -816,12 +816,15 @@ def render_result(result: dict, url: str) -> None:
     w_phish  = f"{p_phish * 100:.1f}%"
     ts       = datetime.fromisoformat(result["timestamp"].replace("Z", "")).strftime("%d/%m/%Y %H:%M")
     msg = (
-        "Ne cliquez pas sur ce lien et ne saisissez aucune information personnelle "
-        "(identifiant, mot de passe, coordonnees bancaires). Signalez-le immediatement "
-        "a votre service informatique ou responsable de la securite."
+        "Par mesure de precaution, nous vous conseillons de verifier l'origine de ce lien "
+        "avant de cliquer. Si vous l'avez recu de maniere inattendue, confirmez son authenticite "
+        "aupres de l'expediteur par un autre canal. En cas de doute persistant, votre equipe "
+        "informatique pourra vous aider a l'evaluer. Notez que ce resultat est fourni a titre "
+        "indicatif : aucun outil automatique n'est infaillible."
         if is_phishing else
-        "Ce lien semble fiable d'apres l'analyse du modele. Restez neanmoins vigilant : "
-        "verifiez toujours l'expediteur avant de saisir des informations sensibles."
+        "Ce lien ne presente pas d'indicateurs de phishing connus. Gardez neanmoins le reflexe "
+        "de verifier l'expediteur et le contexte avant de saisir des informations sensibles. "
+        "Aucun outil automatique n'offre une garantie absolue."
     )
 
     st.markdown(

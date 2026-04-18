@@ -20,13 +20,35 @@ Email: sallsouleymane2207@gmail.com
 
 import re
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import StandardScaler
+
+
+def normalize_url(url: str) -> str:
+    """
+    Normalise une URL pour assurer la coherence entre entrainement et inference.
+
+    - Ajoute https:// si absent (urlparse ne parse pas correctement sans scheme)
+    - Supprime le slash final sur les domaines nus pour eviter que num_slashes
+      differe entre domain.com et domain.com/
+
+    Cette fonction doit etre appliquee aussi bien aux donnees d'entrainement
+    qu'aux URLs soumises a l'inference.
+    """
+    if not isinstance(url, str):
+        url = str(url)
+    url = url.strip()
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    parsed = urlparse(url)
+    if parsed.path in ("", "/") and not parsed.query and not parsed.fragment:
+        url = urlunparse(parsed._replace(path=""))
+    return url
 
 
 def _split_tokens(x: str) -> list[str]:

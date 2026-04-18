@@ -23,7 +23,7 @@ from sklearn.svm import LinearSVC
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.features.build_features import URLFeatureExtractor
+from src.features.build_features import URLFeatureExtractor, normalize_url
 from src.utils.io_utils import ensure_dir, load_csv, save_joblib
 from src.utils.metrics import find_optimal_threshold
 
@@ -69,9 +69,9 @@ def main() -> None:
     train_df[target_col] = train_df[target_col].map(LABEL_MAP)
     val_df[target_col]   = val_df[target_col].map(LABEL_MAP)
 
-    X_train_urls = train_df[text_col]
+    X_train_urls = train_df[text_col].map(normalize_url)
     y_train      = train_df[target_col].values
-    X_val_urls   = val_df[text_col]
+    X_val_urls   = val_df[text_col].map(normalize_url)
     y_val        = val_df[target_col].values
 
     # Extraction des features

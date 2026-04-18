@@ -888,9 +888,17 @@ def is_model_ready() -> bool:
 
 
 def _normalize_url(url: str) -> str:
-    """Ajoute https:// si l'URL n'a pas de scheme — urlparse en a besoin pour parser correctement."""
+    """Normalise l'URL pour cohérence avec le corpus d'entraînement.
+    - Ajoute https:// si absent (urlparse parse mal sans scheme)
+    - Supprime le slash final sur les domaines nus (domain.com/ → domain.com)
+      pour éviter que num_slashes diffère entre domain.com et domain.com/
+    """
+    from urllib.parse import urlparse, urlunparse
     if not url.startswith(("http://", "https://")):
-        return "https://" + url
+        url = "https://" + url
+    parsed = urlparse(url)
+    if parsed.path in ("", "/") and not parsed.query and not parsed.fragment:
+        url = urlunparse(parsed._replace(path=""))
     return url
 
 

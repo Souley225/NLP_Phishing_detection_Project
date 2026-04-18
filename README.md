@@ -1,4 +1,4 @@
-# PhishGuard — Détection de Phishing par NLP
+# PhishGuard : Détection de Phishing par NLP
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -10,11 +10,11 @@
 
 ---
 
-Chaque jour, des millions de personnes reçoivent des liens frauduleux par email ou SMS — des URLs conçues pour ressembler à de vrais sites (banques, réseaux sociaux, services en ligne) dans le but de voler des identifiants ou des données personnelles. C'est ce qu'on appelle le **phishing**.
+Chaque jour, des millions de personnes reçoivent des liens frauduleux par email ou SMS : des URLs conçues pour ressembler à de vrais sites (banques, réseaux sociaux, services en ligne) dans le but de voler des identifiants ou des données personnelles. C'est ce qu'on appelle le **phishing**.
 
 **PhishGuard** est un outil qui analyse une URL en moins d'une seconde et répond à une question simple : ce lien est-il dangereux ?
 
-Pas besoin de cliquer dessus. L'outil examine uniquement la structure du lien — sa longueur, ses caractères, son domaine, sa profondeur — et donne un verdict avec un niveau de confiance. Aucune connexion externe n'est effectuée.
+Pas besoin de cliquer dessus. L'outil examine uniquement la structure du lien (sa longueur, ses caractères, son domaine, sa profondeur) et donne un verdict avec un niveau de confiance. Aucune connexion externe n'est effectuée.
 
 > Essayez la démo : [sallsou-nlp-phishing-detection.hf.space](https://sallsou-nlp-phishing-detection.hf.space)
 
@@ -22,7 +22,7 @@ Pas besoin de cliquer dessus. L'outil examine uniquement la structure du lien �
 
 ### Sous le capot
 
-PhishGuard est un projet de Machine Learning entraîné sur **549 000 URLs réelles** (phishing et légitimes). Il atteint un **F1-Score de 95.5%** — ce qui signifie qu'il détecte correctement 19 liens sur 20, dans les deux sens : sans trop accuser des sites innocents, sans laisser passer des liens dangereux.
+PhishGuard est un projet de Machine Learning entraîné sur **549 000 URLs réelles** (phishing et légitimes). Il atteint un **F1-Score de 95.5%**, ce qui signifie qu'il détecte correctement 19 liens sur 20, dans les deux sens : sans trop accuser des sites innocents, sans laisser passer des liens dangereux.
 
 ---
 
@@ -98,7 +98,7 @@ bigrammes [1,2]                      4-grammes [2,4]           16 features
 | Feature | Description |
 |---------|-------------|
 | `url_length` | Longueur totale de l'URL |
-| `entropy` | Entropie de Shannon — URLs aléatoires ont une entropie élevée |
+| `entropy` | Entropie de Shannon (URLs aléatoires ont une entropie élevée) |
 | `has_ip` | Présence d'une adresse IP dans le domaine |
 | `suspicious_tld` | TLD dans une liste noire (.tk, .ml, .ga, .cf…) |
 | `subdomain_count` | Nombre de sous-domaines |
@@ -280,8 +280,8 @@ curl -X POST http://localhost:8000/predict \
 | Modèle | Features | F1 | Notes |
 |--------|----------|----|-------|
 | LogisticRegression | 8k | 92.6% | Baseline |
-| RandomForest 300 arbres | 80k | — | OOM — matrice 355k × 80k trop dense |
-| **LinearSVC + CalibratedCV** | **35k** | **95.5%** | Actuel — efficace sur sparse |
+| RandomForest 300 arbres | 80k | N/A | OOM : matrice 355k x 80k trop dense |
+| **LinearSVC + CalibratedCV** | **35k** | **95.5%** | Actuel, efficace sur sparse |
 
 **Latence (CPU, sans GPU) :**
 - 1 URL : < 5 ms

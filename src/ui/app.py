@@ -20,10 +20,10 @@ ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 st.set_page_config(
-    page_title="PhishGuard — Détection de phishing",
+    page_title="PhishGuard - Detection de phishing",
     page_icon="https://cdn-icons-png.flaticon.com/512/2716/2716652.png",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 # ── Constantes ────────────────────────────────────────────────────────────────
@@ -155,7 +155,7 @@ def inject_css() -> None:
     }
 
     /* ── Input — 16px prevents iOS zoom ── */
-    .stTextInput label { display: none !important; }
+    .stTextInput label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
     .stTextInput > div > div > input {
         background: var(--surface) !important;
         border: 1.5px solid var(--border2) !important;
@@ -788,6 +788,40 @@ def inject_css() -> None:
         transition: border-color .15s, color .15s, background .15s;
     }
     .footer-link:hover { border-color: var(--navy); color: var(--navy) !important; background: var(--sky-l); }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer-bar {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-left: 3px solid #f59e0b;
+        border-radius: var(--r-xs);
+        padding: .6rem .9rem;
+        font-size: .78rem;
+        color: #92400e;
+        line-height: 1.6;
+        margin-bottom: .9rem;
+    }
+
+    /* ── WHY FLAGGED BREAKDOWN ── */
+    .why-section {
+        margin-top: .85rem;
+        padding-top: .85rem;
+        border-top: 1px solid rgba(0,0,0,.07);
+    }
+    .why-title {
+        font-size: .6rem; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase;
+        color: var(--text3); margin-bottom: .5rem;
+    }
+    .why-item {
+        display: flex; gap: .65rem; align-items: flex-start;
+        margin-bottom: .38rem; font-size: .8rem;
+        color: var(--text2); line-height: 1.55;
+    }
+    .why-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--red-d); flex-shrink: 0; margin-top: .42rem;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -796,7 +830,7 @@ def inject_css() -> None:
 
 @st.cache_resource(show_spinner="Chargement du modele de detection...")
 def load_model():
-    """Charge le modele, les vectorizers et le seuil de decision. Mis en cache."""
+    """Charge le modele, les vectorizers, le seuil et les metriques. Mis en cache."""
     import joblib
     from src.features.build_features import URLFeatureExtractor
 
@@ -817,14 +851,23 @@ def load_model():
         extractor.scaler = joblib.load(models_dir / "scaler.pkl")
     extractor.is_fitted = True
 
+    metrics = {"threshold": 0.5, "f1": 0.0, "precision": 0.0, "recall": 0.0}
     threshold_path = models_dir / "threshold.json"
     if threshold_path.exists():
         with open(threshold_path) as f:
-            threshold = float(json.load(f).get("threshold", 0.5))
-    else:
-        threshold = 0.5
+            metrics = json.load(f)
 
-    return model, extractor, threshold
+    threshold = float(metrics.get("threshold", 0.5))
+    return model, extractor, threshold, metrics
+
+
+def _get_model_metrics() -> dict:
+    """Retourne les metriques du modele (depuis le cache), ou des valeurs par defaut."""
+    try:
+        _, _, _, metrics = load_model()
+        return metrics
+    except Exception:
+        return {"threshold": 0.5, "f1": 0.0, "precision": 0.0, "recall": 0.0}
 
 
 def is_model_ready() -> bool:
@@ -853,7 +896,7 @@ def _normalize_url(url: str) -> str:
 def predict_url(url: str) -> dict | None:
     try:
         url = _normalize_url(url)
-        model, extractor, threshold = load_model()
+        model, extractor, threshold, _ = load_model()
         X = extractor.transform(pd.Series([url]))
         probabilities = model.predict_proba(X)[0]
 
@@ -880,12 +923,37 @@ def predict_url(url: str) -> dict | None:
             "proba_phishing":   proba_phish,
             "timestamp":        datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         }
-    except Exception as e:
-        st.error(f"Erreur lors de l'analyse : {e}")
+    except Exception:
         return None
 
 
 # ── Rendu HTML ────────────────────────────────────────────────────────────────
+
+def _get_why_flagged(url: str) -> list[str]:
+    """Retourne jusqu'a 3 indicateurs en francais expliquant pourquoi l'URL est suspecte."""
+    try:
+        from src.features.build_features import extract_lexical_features
+        f = extract_lexical_features(url)
+    except Exception:
+        return []
+
+    reasons = []
+    if f.get("has_ip") == 1.0:
+        reasons.append("Adresse IP numerique au lieu d'un nom de domaine : pratique courante dans les sites frauduleux.")
+    if f.get("suspicious_tld") == 1.0:
+        reasons.append("Extension de domaine a risque (.tk, .ml, .xyz...) : frequemment utilisee dans les campagnes de phishing.")
+    if f.get("num_at", 0) > 0:
+        reasons.append("Presence du symbole '@' dans l'URL : technique classique pour masquer la vraie destination d'un lien.")
+    if f.get("subdomain_count", 0) > 2:
+        reasons.append(f"Structure en sous-domaines inhabituellement profonde ({int(f['subdomain_count'])} niveaux) : peut servir a imiter un site connu.")
+    if f.get("url_length", 0) > 75:
+        reasons.append(f"Lien inhabituellement long ({f['url_length']} caracteres) : les liens frauduleux sont souvent tres longs pour dissimuler leur vraie destination.")
+    if f.get("entropy", 0) > 3.8:
+        reasons.append("Structure interne tres aleatoire : caracteristique d'une adresse generee automatiquement.")
+    if f.get("digit_ratio", 0) > 0.25:
+        reasons.append(f"Proportion elevee de chiffres ({f['digit_ratio']:.0%}) : souvent le signe d'une URL generee par un programme.")
+    return reasons[:3]
+
 
 def render_header(online: bool) -> None:
     dot_cls   = "online" if online else "offline"
@@ -907,32 +975,33 @@ def render_header(online: bool) -> None:
     )
 
 
-def render_about() -> None:
+def render_about(metrics: dict) -> None:
+    f1_pct        = f"{metrics.get('f1', 0):.0%}"
+    precision_pct = f"{metrics.get('precision', 0):.0%}"
     st.markdown(
         '<div class="about-card">'
         '<div class="card-title">A propos du projet</div>'
         '<p class="about-text">'
-        'PhishGuard analyse automatiquement la structure d\'une URL pour determiner si elle '
-        'presente des caracteristiques associees au phishing — une technique de fraude visant '
-        'a usurper l\'identite d\'un service de confiance pour derober des informations '
-        'personnelles (mots de passe, donnees bancaires).'
+        'PhishGuard analyse la structure d\'un lien pour determiner s\'il pourrait etre '
+        'frauduleux. L\'outil a ete entraine sur 549 000 liens reels pour reconnaitre '
+        'les caracteristiques communes des arnaques en ligne : adresses trop longues, '
+        'extensions de domaine inhabituelles, structures anormales.'
         '</p>'
         '<p class="about-text">'
-        'Le modele s\'appuie sur le traitement du langage naturel : representations TF-IDF '
-        'des mots et n-grammes de caracteres, indicateurs lexicaux (entropie, longueur, '
-        'extension de domaine). Il ne necessite pas d\'acceder au contenu du lien.'
+        'L\'analyse est instantanee et ne necessite aucun acces au contenu du lien. '
+        'Aucune donnee n\'est envoyee a un service externe.'
         '</p>'
         '<div class="about-stats">'
         '<div class="about-stat">'
-        '<div class="about-stat-val">450k+</div>'
-        '<div class="about-stat-lbl">URLs entrainement</div>'
+        '<div class="about-stat-val">549k</div>'
+        '<div class="about-stat-lbl">Liens analyses</div>'
         '</div>'
-        '<div class="about-stat">'
-        '<div class="about-stat-val">93&thinsp;%</div>'
+        f'<div class="about-stat">'
+        f'<div class="about-stat-val">{f1_pct}</div>'
         '<div class="about-stat-lbl">Score F1</div>'
         '</div>'
-        '<div class="about-stat">'
-        '<div class="about-stat-val">96&thinsp;%</div>'
+        f'<div class="about-stat">'
+        f'<div class="about-stat-val">{precision_pct}</div>'
         '<div class="about-stat-lbl">Precision</div>'
         '</div>'
         '</div>'
@@ -942,6 +1011,14 @@ def render_about() -> None:
 
 
 def render_guide() -> None:
+    st.markdown(
+        '<div class="disclaimer-bar">'
+        'Aucun outil automatique n\'offre une garantie absolue. PhishGuard aide a '
+        'identifier les liens suspects, mais ne remplace pas le jugement humain. '
+        'En cas de doute, contactez votre equipe informatique.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         '<div class="guide-card">'
         '<div class="guide-title">Comment utiliser PhishGuard</div>'
@@ -999,6 +1076,22 @@ def render_result(result: dict, url: str) -> None:
         "Aucun outil automatique n'offre une garantie absolue."
     )
 
+    # Feature breakdown (why flagged) — only for phishing verdicts
+    why_html = ""
+    if is_phishing:
+        reasons = _get_why_flagged(url)
+        if reasons:
+            items = "".join(
+                f'<div class="why-item"><div class="why-dot"></div><span>{r}</span></div>'
+                for r in reasons
+            )
+            why_html = (
+                f'<div class="why-section">'
+                f'<div class="why-title">Pourquoi ce verdict ?</div>'
+                f'{items}'
+                f'</div>'
+            )
+
     st.markdown(
         f'<div class="result-card {cls}">'
         f'<div class="result-hero {cls}">'
@@ -1032,6 +1125,7 @@ def render_result(result: dict, url: str) -> None:
         f'<div class="stat-cell"><div class="stat-val">{len(url)}</div><div class="stat-lbl">Longueur URL</div></div>'
         f'</div>'
         f'<div class="result-msg {cls}">{msg}</div>'
+        f'{why_html}'
         f'</div>'
         f'</div>',
         unsafe_allow_html=True,
@@ -1063,10 +1157,15 @@ def render_history(history: list) -> None:
     st.markdown(f'<div class="hist-list">{rows}</div>', unsafe_allow_html=True)
 
 
-def render_sidebar(history: list) -> None:
+def render_sidebar(history: list, metrics: dict) -> None:
     total   = len(history)
     threats = sum(1 for h in history if h["label"] == "phishing")
     safe    = total - threats
+
+    thr_val  = f"{metrics.get('threshold', 0.5):.2f}"
+    f1_val   = f"{metrics.get('f1', 0):.1%}"
+    prec_val = f"{metrics.get('precision', 0):.1%}"
+    rec_val  = f"{metrics.get('recall', 0):.1%}"
 
     # ── Session ──────────────────────────────────────────────────────────
     st.markdown(
@@ -1081,21 +1180,21 @@ def render_sidebar(history: list) -> None:
 
     st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
 
-    # ── Modèle ───────────────────────────────────────────────────────────
+    # ── Modele ───────────────────────────────────────────────────────────
     st.markdown(
         '<div class="sb-heading">Modele de detection</div>'
         '<div class="sb-metric-row"><span class="sb-metric-key">Algorithme</span>'
-        '<span class="sb-metric-val accent">Regression logistique</span></div>'
-        '<div class="sb-metric-row"><span class="sb-metric-key">Seuil de decision</span>'
-        '<span class="sb-metric-val">0.40</span></div>'
-        '<div class="sb-metric-row"><span class="sb-metric-key">Score F1</span>'
-        '<span class="sb-metric-val">92.7 %</span></div>'
-        '<div class="sb-metric-row"><span class="sb-metric-key">Precision</span>'
-        '<span class="sb-metric-val">93.6 %</span></div>'
-        '<div class="sb-metric-row"><span class="sb-metric-key">Rappel</span>'
-        '<span class="sb-metric-val">91.7 %</span></div>'
-        '<div class="sb-metric-row"><span class="sb-metric-key">URLs d\'entrainement</span>'
-        '<span class="sb-metric-val">450 000+</span></div>',
+        '<span class="sb-metric-val accent">LinearSVC calibre</span></div>'
+        f'<div class="sb-metric-row"><span class="sb-metric-key">Seuil de decision</span>'
+        f'<span class="sb-metric-val">{thr_val}</span></div>'
+        f'<div class="sb-metric-row"><span class="sb-metric-key">Score F1</span>'
+        f'<span class="sb-metric-val">{f1_val}</span></div>'
+        f'<div class="sb-metric-row"><span class="sb-metric-key">Precision</span>'
+        f'<span class="sb-metric-val">{prec_val}</span></div>'
+        f'<div class="sb-metric-row"><span class="sb-metric-key">Rappel</span>'
+        f'<span class="sb-metric-val">{rec_val}</span></div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">Dataset</span>'
+        '<span class="sb-metric-val">549 000 URLs</span></div>',
         unsafe_allow_html=True,
     )
 
@@ -1103,18 +1202,23 @@ def render_sidebar(history: list) -> None:
 
     # ── Pipeline ─────────────────────────────────────────────────────────
     st.markdown(
-        '<div class="sb-heading">Pipeline NLP</div>'
+        '<div class="sb-heading">Comment ca fonctionne</div>'
         '<div class="sb-pipeline">'
         '<div class="sb-pipe-step"><div class="sb-pipe-num">1</div>'
-        '<div class="sb-pipe-label">Tokenisation<span class="sb-pipe-sub">Decomposition de l\'URL en tokens</span></div></div>'
+        '<div class="sb-pipe-label">Decoupage du lien'
+        '<span class="sb-pipe-sub">L\'URL est separee en segments reconnaissables</span></div></div>'
         '<div class="sb-pipe-step"><div class="sb-pipe-num">2</div>'
-        '<div class="sb-pipe-label">TF-IDF mots<span class="sb-pipe-sub">Bigrammes de tokens (50 000 features)</span></div></div>'
+        '<div class="sb-pipe-label">Analyse des mots'
+        '<span class="sb-pipe-sub">Chaque mot est compare a 20 000 patterns connus</span></div></div>'
         '<div class="sb-pipe-step"><div class="sb-pipe-num">3</div>'
-        '<div class="sb-pipe-label">TF-IDF caracteres<span class="sb-pipe-sub">N-grammes 2–4 chars (100 000 features)</span></div></div>'
+        '<div class="sb-pipe-label">Analyse des caracteres'
+        '<span class="sb-pipe-sub">Les sequences inhabituelles sont detectees (15 000 patterns)</span></div></div>'
         '<div class="sb-pipe-step"><div class="sb-pipe-num">4</div>'
-        '<div class="sb-pipe-label">Features lexicales<span class="sb-pipe-sub">Entropie, longueur, TLD, IP, tirets…</span></div></div>'
+        '<div class="sb-pipe-label">Indicateurs structurels'
+        '<span class="sb-pipe-sub">Longueur, chiffres, sous-domaines, extension... (16 indicateurs)</span></div></div>'
         '<div class="sb-pipe-step"><div class="sb-pipe-num">5</div>'
-        '<div class="sb-pipe-label">Classification<span class="sb-pipe-sub">Score de probabilite + seuil 0.40</span></div></div>'
+        '<div class="sb-pipe-label">Score de risque'
+        f'<span class="sb-pipe-sub">Resultat compare au seuil de decision ({thr_val})</span></div></div>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -1168,7 +1272,7 @@ def render_sidebar(history: list) -> None:
         f'<div class="sb-heading">Liens</div>'
         f'<a class="sb-link-row" href="{LINKEDIN_URL}" target="_blank" rel="noopener">'
         f'{SVG_LINKEDIN}'
-        f'<span class="sb-link-text">Souleymane Sall — LinkedIn</span>'
+        f'<span class="sb-link-text">Souleymane Sall, LinkedIn</span>'
         f'</a>'
         f'<a class="sb-link-row" href="{GITHUB_URL}" target="_blank" rel="noopener">'
         f'{SVG_GITHUB}'
@@ -1185,12 +1289,13 @@ def main() -> None:
 
     online  = is_model_ready()
     history = st.session_state.get("history", [])
+    metrics = _get_model_metrics()
 
     with st.sidebar:
-        render_sidebar(history)
+        render_sidebar(history, metrics)
 
     render_header(online)
-    render_about()
+    render_about(metrics)
     render_guide()
 
     # Zone de saisie
@@ -1200,7 +1305,7 @@ def main() -> None:
     with st.form(key="scan_form", clear_on_submit=False):
         url_input = st.text_input(
             label="url",
-            placeholder="https://example.com/page — collez l'URL complete ici",
+            placeholder="https://example.com/page : collez votre lien ici",
             key="url_field",
         )
         st.markdown(
@@ -1234,6 +1339,7 @@ def main() -> None:
             if result:
                 st.session_state["last_result"] = result
                 st.session_state["last_url"]    = result["url"]
+                st.session_state.pop("last_error", None)
                 if "history" not in st.session_state:
                     st.session_state.history = []
                 st.session_state.history.append({
@@ -1243,6 +1349,18 @@ def main() -> None:
                     "timestamp":  result["timestamp"],
                 })
                 st.rerun()
+            else:
+                st.session_state["last_error"] = True
+                st.rerun()
+
+    if st.session_state.get("last_error"):
+        st.markdown(
+            '<div class="disclaimer-bar" style="border-left-color:#ef4444;background:#fef2f2;color:#7f1d1d;">'
+            'L\'analyse n\'a pas pu aboutir. Verifiez que le lien est valide et reessayez. '
+            'Si le probleme persiste, contactez votre equipe informatique.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     if "last_result" in st.session_state:
         st.markdown(
@@ -1266,7 +1384,7 @@ def main() -> None:
     st.markdown(
         f'<div class="pg-footer">'
         f'<div class="footer-left">'
-        f'PhishGuard &mdash; Detection de phishing par NLP<br>'
+        f'PhishGuard - Detection de phishing par NLP<br>'
         f'Souleymane Sall &middot; scikit-learn &middot; Streamlit'
         f'</div>'
         f'<div class="footer-links">'

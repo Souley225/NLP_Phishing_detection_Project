@@ -12,7 +12,7 @@ Email: sallsouleymane2207@gmail.com
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +32,7 @@ from src.utils.io_utils import load_joblib
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ _threshold: float = 0.5
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
 class URLRequest(BaseModel):
-    url: str = Field(..., description="URL to analyse")
+    url: str = Field(..., min_length=4, max_length=2048, description="URL to analyse")
 
 
 class PredictionResponse(BaseModel):
@@ -161,7 +161,7 @@ async def health_check() -> HealthResponse:
     return HealthResponse(
         status="healthy" if model is not None else "unhealthy",
         model_loaded=model is not None,
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     )
 
 
@@ -198,7 +198,7 @@ async def predict(request: URLRequest) -> PredictionResponse:
             confidence=confidence,
             proba_legitimate=proba_legitimate,
             proba_phishing=proba_phishing,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )
         logger.info(f"Result: {result.label} ({result.confidence:.2%})")
         return result

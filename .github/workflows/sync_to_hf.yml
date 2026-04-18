@@ -1,6 +1,8 @@
-# Synchronise automatiquement le dépôt GitHub vers le HF Space à chaque push sur main.
-# Prérequis : ajouter HF_TOKEN comme secret GitHub (Settings > Secrets and variables > Actions).
-# Le token doit avoir le rôle "write" sur le Space sallsou/nlp-phishing-detection.
+# Synchronise le depot GitHub vers le HF Space a chaque push sur master.
+# Utilise huggingface_hub.upload_folder pour gerer les fichiers binaires (.pkl)
+# sans passer par git push (rejete par HF pour les binaires depuis 2025).
+#
+# Prerequis : secret GitHub HF_TOKEN avec role "write" sur sallsou/nlp-phishing-detection.
 
 name: Sync to Hugging Face Space
 
@@ -16,14 +18,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: true
 
-      - name: Push to HF Space
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Sync to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git config user.email "sallsouleymane2207@gmail.com"
-          git config user.name "Souleymane Sall"
-          git push https://sallsou:${HF_TOKEN}@huggingface.co/spaces/sallsou/nlp-phishing-detection master:main --force
+          pip install -q "huggingface_hub>=0.23"
+          python -c "
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.upload_folder(
+            folder_path='.',
+            repo_id='sallsou/nlp-phishing-detection',
+            repo_type='space',
+            token=os.environ['HF_TOKEN'],
+            ignore_patterns=[
+              '.git', '.github',
+              '__pycache__', '**/__pycache__', '*.pyc',
+              '.venv', 'venv',
+              'data', 'logs', 'mlruns',
+              '.env', '*.env',
+            ],
+          )
+          print('Sync complete.')
+          "

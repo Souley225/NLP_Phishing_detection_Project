@@ -696,9 +696,11 @@ def inject_css() -> None:
         font-size: .63rem; font-weight: 700;
         text-transform: uppercase; letter-spacing: .12em;
         color: rgba(255,255,255,.32) !important;
-        margin-bottom: .6rem;
+        margin-bottom: .65rem;
     }
     .sb-body { font-size: .82rem; color: rgba(255,255,255,.62) !important; line-height: 1.65; }
+
+    /* Tags tech */
     .sb-tag {
         display: inline-block;
         background: rgba(255,255,255,.08);
@@ -709,6 +711,8 @@ def inject_css() -> None:
         color: rgba(255,255,255,.72) !important;
         margin: .15rem;
     }
+
+    /* Exemples d'URLs */
     .sb-ex-url {
         font-family: var(--ff-m);
         font-size: .68rem;
@@ -720,6 +724,8 @@ def inject_css() -> None:
     }
     .sb-ex-url.ok  { background: rgba(22,163,74,.14);  border: 1px solid rgba(22,163,74,.25); }
     .sb-ex-url.bad { background: rgba(220,38,38,.14);  border: 1px solid rgba(220,38,38,.25); }
+
+    /* Grille stats session */
     .sb-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .4rem; }
     .sb-stat-box {
         background: rgba(255,255,255,.06);
@@ -728,6 +734,61 @@ def inject_css() -> None:
     }
     .sb-stat-val { font-size: 1.15rem; font-weight: 800; color: #fff !important; }
     .sb-stat-lbl { font-size: .58rem; color: rgba(255,255,255,.38) !important; text-transform: uppercase; letter-spacing: .07em; }
+
+    /* Métriques modèle */
+    .sb-metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .42rem 0;
+        border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .sb-metric-row:last-child { border-bottom: none; }
+    .sb-metric-key { font-size: .77rem; color: rgba(255,255,255,.52) !important; }
+    .sb-metric-val { font-size: .82rem; font-weight: 700; color: rgba(255,255,255,.9) !important; font-family: var(--ff-m); }
+    .sb-metric-val.accent { color: #93c5fd !important; }
+
+    /* Pipeline */
+    .sb-pipeline { display: flex; flex-direction: column; gap: .32rem; }
+    .sb-pipe-step {
+        display: flex; align-items: center; gap: .6rem;
+        padding: .42rem .6rem;
+        border-radius: 6px;
+        background: rgba(255,255,255,.04);
+        border: 1px solid rgba(255,255,255,.07);
+    }
+    .sb-pipe-num {
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: rgba(147,197,253,.18);
+        border: 1px solid rgba(147,197,253,.3);
+        color: #93c5fd !important;
+        font-size: .62rem; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .sb-pipe-label { font-size: .74rem; color: rgba(255,255,255,.68) !important; line-height: 1.3; }
+    .sb-pipe-sub { font-size: .65rem; color: rgba(255,255,255,.35) !important; display: block; }
+
+    /* Stack technique — items avec point */
+    .sb-stack-list { display: flex; flex-direction: column; gap: .28rem; }
+    .sb-stack-item {
+        display: flex; align-items: flex-start; gap: .55rem;
+        padding: .38rem .6rem;
+        border-radius: 6px;
+        background: rgba(255,255,255,.04);
+    }
+    .sb-stack-dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: #93c5fd;
+        flex-shrink: 0;
+        margin-top: .38rem;
+    }
+    .sb-stack-name { font-size: .76rem; font-weight: 600; color: rgba(255,255,255,.82) !important; }
+    .sb-stack-desc { font-size: .67rem; color: rgba(255,255,255,.38) !important; display: block; }
+
+    /* Liens */
     .sb-link-row {
         display: flex; align-items: center; gap: .55rem;
         padding: .6rem .75rem;
@@ -1040,8 +1101,9 @@ def render_sidebar(history: list) -> None:
     threats = sum(1 for h in history if h["label"] == "phishing")
     safe    = total - threats
 
+    # ── Session ──────────────────────────────────────────────────────────
     st.markdown(
-        f'<div class="sb-heading">Statistiques de session</div>'
+        f'<div class="sb-heading">Session en cours</div>'
         f'<div class="sb-stats-grid">'
         f'<div class="sb-stat-box"><div class="sb-stat-val">{total}</div><div class="sb-stat-lbl">Analyses</div></div>'
         f'<div class="sb-stat-box"><div class="sb-stat-val">{threats}</div><div class="sb-stat-lbl">Suspects</div></div>'
@@ -1052,12 +1114,75 @@ def render_sidebar(history: list) -> None:
 
     st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="sb-heading">Technologies du modele</div>', unsafe_allow_html=True)
-    for tag in ["TF-IDF mots", "TF-IDF n-grammes", "Features lexicales", "Regression logistique"]:
-        st.markdown(f'<span class="sb-tag">{tag}</span>', unsafe_allow_html=True)
+    # ── Modèle ───────────────────────────────────────────────────────────
+    st.markdown(
+        '<div class="sb-heading">Modele de detection</div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">Algorithme</span>'
+        '<span class="sb-metric-val accent">Regression logistique</span></div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">Seuil de decision</span>'
+        '<span class="sb-metric-val">0.40</span></div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">Score F1</span>'
+        '<span class="sb-metric-val">92.7 %</span></div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">Precision</span>'
+        '<span class="sb-metric-val">93.6 %</span></div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">Rappel</span>'
+        '<span class="sb-metric-val">91.7 %</span></div>'
+        '<div class="sb-metric-row"><span class="sb-metric-key">URLs d\'entrainement</span>'
+        '<span class="sb-metric-val">450 000+</span></div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
 
+    # ── Pipeline ─────────────────────────────────────────────────────────
+    st.markdown(
+        '<div class="sb-heading">Pipeline NLP</div>'
+        '<div class="sb-pipeline">'
+        '<div class="sb-pipe-step"><div class="sb-pipe-num">1</div>'
+        '<div class="sb-pipe-label">Tokenisation<span class="sb-pipe-sub">Decomposition de l\'URL en tokens</span></div></div>'
+        '<div class="sb-pipe-step"><div class="sb-pipe-num">2</div>'
+        '<div class="sb-pipe-label">TF-IDF mots<span class="sb-pipe-sub">Bigrammes de tokens (50 000 features)</span></div></div>'
+        '<div class="sb-pipe-step"><div class="sb-pipe-num">3</div>'
+        '<div class="sb-pipe-label">TF-IDF caracteres<span class="sb-pipe-sub">N-grammes 2–4 chars (100 000 features)</span></div></div>'
+        '<div class="sb-pipe-step"><div class="sb-pipe-num">4</div>'
+        '<div class="sb-pipe-label">Features lexicales<span class="sb-pipe-sub">Entropie, longueur, TLD, IP, tirets…</span></div></div>'
+        '<div class="sb-pipe-step"><div class="sb-pipe-num">5</div>'
+        '<div class="sb-pipe-label">Classification<span class="sb-pipe-sub">Score de probabilite + seuil 0.40</span></div></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
+
+    # ── Stack technique ───────────────────────────────────────────────────
+    st.markdown(
+        '<div class="sb-heading">Stack technique</div>'
+        '<div class="sb-stack-list">'
+        '<div class="sb-stack-item"><div class="sb-stack-dot"></div><div>'
+        '<div class="sb-stack-name">Python 3.11</div>'
+        '<span class="sb-stack-desc">Langage principal</span></div></div>'
+        '<div class="sb-stack-item"><div class="sb-stack-dot"></div><div>'
+        '<div class="sb-stack-name">scikit-learn</div>'
+        '<span class="sb-stack-desc">Modelisation et vectorisation TF-IDF</span></div></div>'
+        '<div class="sb-stack-item"><div class="sb-stack-dot"></div><div>'
+        '<div class="sb-stack-name">scipy.sparse</div>'
+        '<span class="sb-stack-desc">Matrices creuses pour les features combinees</span></div></div>'
+        '<div class="sb-stack-item"><div class="sb-stack-dot"></div><div>'
+        '<div class="sb-stack-name">FastAPI</div>'
+        '<span class="sb-stack-desc">API REST de prediction (port 8000)</span></div></div>'
+        '<div class="sb-stack-item"><div class="sb-stack-dot"></div><div>'
+        '<div class="sb-stack-name">Streamlit</div>'
+        '<span class="sb-stack-desc">Interface utilisateur web</span></div></div>'
+        '<div class="sb-stack-item"><div class="sb-stack-dot"></div><div>'
+        '<div class="sb-stack-name">Hugging Face Spaces</div>'
+        '<span class="sb-stack-desc">Hebergement cloud (Docker)</span></div></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
+
+    # ── Exemples ─────────────────────────────────────────────────────────
     st.markdown(
         '<div class="sb-heading">Exemples d\'URLs</div>'
         '<div style="font-size:.63rem;color:rgba(255,255,255,.32);text-transform:uppercase;'
@@ -1073,6 +1198,7 @@ def render_sidebar(history: list) -> None:
 
     st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
 
+    # ── Liens ─────────────────────────────────────────────────────────────
     st.markdown(
         f'<div class="sb-heading">Liens</div>'
         f'<a class="sb-link-row" href="{LINKEDIN_URL}" target="_blank" rel="noopener">'

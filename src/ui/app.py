@@ -887,8 +887,16 @@ def is_model_ready() -> bool:
         return False
 
 
+def _normalize_url(url: str) -> str:
+    """Ajoute https:// si l'URL n'a pas de scheme — urlparse en a besoin pour parser correctement."""
+    if not url.startswith(("http://", "https://")):
+        return "https://" + url
+    return url
+
+
 def predict_url(url: str) -> dict | None:
     try:
+        url = _normalize_url(url)
         model, extractor, threshold = load_model()
         X = extractor.transform(pd.Series([url]))
         probabilities = model.predict_proba(X)[0]

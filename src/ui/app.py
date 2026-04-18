@@ -1,6 +1,6 @@
 """
 PhishGuard — Outil de détection de phishing par analyse d'URL.
-Interface professionnelle en français, adaptée à un usage RH/entreprise.
+Interface professionnelle en français, adaptée à un usage entreprise.
 
 Auteur: Souleymane Sall
 Email: sallsouleymane2207@gmail.com
@@ -26,17 +26,58 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Constantes ────────────────────────────────────────────────────────────────
+
+LINKEDIN_URL = "https://www.linkedin.com/in/souleymanes-sall/"
+GITHUB_URL   = "https://github.com/Souley225/NLP_Phishing_detection_Project"
+
+SVG_SHIELD = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+    'width="22" height="22" fill="white">'
+    '<path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>'
+    '</svg>'
+)
+
+SVG_LINKEDIN = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+    'width="16" height="16" fill="currentColor">'
+    '<path d="M19 0H5C2.239 0 0 2.239 0 5v14c0 2.761 2.239 5 5 5h14c2.762 0 '
+    '5-2.239 5-5V5c0-2.761-2.238-5-5-5zM8 19H5V8h3v11zM6.5 6.732c-.966 0-1.75'
+    '-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 '
+    '1.764zM20 19h-3v-5.604c0-3.368-4-3.113-4 0V19h-3V8h3v1.765C14.396 7.179 '
+    '20 6.988 20 12.248V19z"/>'
+    '</svg>'
+)
+
+SVG_GITHUB = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+    'width="16" height="16" fill="currentColor">'
+    '<path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599'
+    '.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546'
+    '-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 '
+    '1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418'
+    '-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 '
+    '1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23'
+    '.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291'
+    '-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235'
+    ' 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823'
+    ' 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627'
+    '-5.373-12-12-12z"/>'
+    '</svg>'
+)
+
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 
 def inject_css() -> None:
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Source+Code+Pro:wght@400;500&display=swap');
 
     :root {
         --navy:      #1b2f4e;
         --navy2:     #243a5e;
+        --navy3:     #162540;
         --blue:      #2563eb;
         --blue-l:    #eff6ff;
         --red:       #dc2626;
@@ -66,29 +107,23 @@ def inject_css() -> None:
         color: var(--text) !important;
     }
 
-    /* Masquer chrome Streamlit */
     #MainMenu, footer, header, .stDeployButton { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
 
-    /* Conteneur principal */
     .main .block-container {
         padding: 2rem 2.5rem 4rem !important;
-        max-width: 940px !important;
+        max-width: 960px !important;
     }
 
     /* Sidebar */
-    [data-testid="stSidebar"] {
-        background: var(--navy) !important;
-    }
-    [data-testid="stSidebar"] * {
-        color: rgba(255,255,255,.85) !important;
-    }
+    [data-testid="stSidebar"] { background: var(--navy) !important; }
+    [data-testid="stSidebar"] * { color: rgba(255,255,255,.85) !important; }
     [data-testid="stSidebar"] .stMarkdown p {
-        color: rgba(255,255,255,.7) !important;
-        font-size: .84rem !important;
+        color: rgba(255,255,255,.65) !important;
+        font-size: .83rem !important;
+        line-height: 1.6 !important;
     }
 
-    /* Titres */
     h1, h2, h3 {
         font-family: var(--ff) !important;
         font-weight: 700 !important;
@@ -146,6 +181,14 @@ def inject_css() -> None:
     }
     .stFormSubmitButton > button:not([kind="primary"]):hover {
         background: var(--bg) !important;
+    }
+    .stButton > button {
+        background: var(--surface) !important;
+        color: var(--text2) !important;
+        border: 1.5px solid var(--border2) !important;
+    }
+    .stButton > button:hover {
+        background: var(--bg) !important;
         border-color: var(--text3) !important;
     }
 
@@ -164,79 +207,195 @@ def inject_css() -> None:
         font-size: .88rem !important;
     }
 
-    hr { border-color: var(--border) !important; margin: 1.5rem 0 !important; }
+    hr { border-color: var(--border) !important; margin: 1.8rem 0 !important; }
 
     /* ── Composants maison ── */
 
-    /* En-tête */
-    .pg-header {
-        padding: 2rem 0 1.5rem;
-        border-bottom: 2px solid var(--border);
-        margin-bottom: 1.8rem;
-    }
-    .pg-logo-row {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: .4rem;
-    }
-    .pg-icon {
-        width: 42px; height: 42px;
-        background: var(--navy);
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.3rem;
-        flex-shrink: 0;
-    }
-    .pg-title {
-        font-size: 1.65rem;
-        font-weight: 700;
-        color: var(--navy);
-        letter-spacing: -.02em;
-        line-height: 1.1;
-    }
-    .pg-subtitle {
-        font-size: .88rem;
-        color: var(--text2);
-        margin-top: .25rem;
-        line-height: 1.5;
-    }
-
-    /* Badge statut */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: .45rem;
-        padding: .3rem .8rem;
-        border-radius: 999px;
-        font-size: .78rem;
-        font-weight: 600;
-        letter-spacing: .01em;
-    }
-    .status-badge.online {
-        background: var(--green-l);
-        color: var(--green);
-        border: 1px solid var(--green-b);
-    }
-    .status-badge.offline {
-        background: #fef3c7;
-        color: var(--amber);
-        border: 1px solid #fde68a;
-    }
-    .status-dot {
-        width: 7px; height: 7px;
-        border-radius: 50%;
-        background: currentColor;
-    }
-
-    /* Section label */
     .section-label {
         font-size: .72rem;
         font-weight: 700;
-        letter-spacing: .08em;
+        letter-spacing: .09em;
         text-transform: uppercase;
         color: var(--text3);
-        margin-bottom: .6rem;
+        margin-bottom: .7rem;
+    }
+
+    /* En-tête principal */
+    .pg-header {
+        background: var(--navy);
+        border-radius: 14px;
+        padding: 2rem 2.2rem;
+        margin-bottom: 1.8rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1.4rem;
+    }
+    .pg-icon-box {
+        width: 48px; height: 48px;
+        background: rgba(255,255,255,.12);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        margin-top: .1rem;
+    }
+    .pg-title {
+        font-size: 1.55rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.02em;
+        line-height: 1.15;
+        margin-bottom: .2rem;
+    }
+    .pg-tagline {
+        font-size: .88rem;
+        color: rgba(255,255,255,.65);
+        line-height: 1.5;
+        margin-bottom: .9rem;
+    }
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .28rem .75rem;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 600;
+    }
+    .status-badge.online {
+        background: rgba(22,163,74,.2);
+        color: #86efac;
+        border: 1px solid rgba(22,163,74,.35);
+    }
+    .status-badge.offline {
+        background: rgba(217,119,6,.2);
+        color: #fcd34d;
+        border: 1px solid rgba(217,119,6,.35);
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    /* Carte présentation projet */
+    .about-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem 1.7rem;
+        margin-bottom: 1.6rem;
+        box-shadow: var(--shadow);
+    }
+    .about-title {
+        font-size: .8rem;
+        font-weight: 700;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        color: var(--navy);
+        margin-bottom: .7rem;
+        padding-bottom: .5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .about-text {
+        font-size: .875rem;
+        color: var(--text2);
+        line-height: 1.7;
+        margin: 0;
+    }
+    .about-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: .8rem;
+        margin-top: 1.1rem;
+    }
+    .about-stat {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: .75rem 1rem;
+        text-align: center;
+    }
+    .about-stat-val {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--navy);
+        line-height: 1.1;
+    }
+    .about-stat-lbl {
+        font-size: .68rem;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-top: .18rem;
+    }
+
+    /* Guide d'utilisation */
+    .guide-card {
+        background: var(--blue-l);
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 1.3rem 1.6rem;
+        margin-bottom: 1.6rem;
+    }
+    .guide-title {
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        color: var(--blue);
+        margin-bottom: .9rem;
+    }
+    .guide-steps {
+        display: flex;
+        gap: 1.2rem;
+        flex-wrap: wrap;
+    }
+    .guide-step {
+        flex: 1;
+        min-width: 160px;
+        display: flex;
+        gap: .75rem;
+        align-items: flex-start;
+    }
+    .guide-num {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        background: var(--blue);
+        color: #fff;
+        font-size: .78rem;
+        font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        margin-top: .05rem;
+    }
+    .guide-step-text {
+        font-size: .83rem;
+        color: #1e40af;
+        line-height: 1.55;
+    }
+    .guide-step-title {
+        font-weight: 700;
+        display: block;
+        margin-bottom: .1rem;
+        color: #1e3a8a;
+    }
+
+    /* Zone de saisie */
+    .input-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.4rem 1.6rem 1rem;
+        margin-bottom: 1.2rem;
+        box-shadow: var(--shadow);
+    }
+    .input-label {
+        font-size: .83rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: .4rem;
+    }
+    .input-hint {
+        font-size: .76rem;
+        color: var(--text3);
+        margin-top: .35rem;
+        line-height: 1.5;
     }
 
     /* Carte résultat */
@@ -248,15 +407,8 @@ def inject_css() -> None:
         padding: 1.6rem;
         margin: 1rem 0 1.4rem;
     }
-    .result-card.danger {
-        border-left: 4px solid var(--red);
-        background: linear-gradient(135deg, var(--red-l) 0%, var(--surface) 60%);
-    }
-    .result-card.success {
-        border-left: 4px solid var(--green);
-        background: linear-gradient(135deg, var(--green-l) 0%, var(--surface) 60%);
-    }
-
+    .result-card.danger { border-left: 4px solid var(--red); }
+    .result-card.success { border-left: 4px solid var(--green); }
     .result-header {
         display: flex;
         align-items: flex-start;
@@ -265,41 +417,27 @@ def inject_css() -> None:
         gap: 1rem;
         flex-wrap: wrap;
     }
-    .result-verdict {
-        font-size: 1.15rem;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-    .result-verdict.danger { color: var(--red); }
+    .result-verdict { font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+    .result-verdict.danger  { color: var(--red); }
     .result-verdict.success { color: var(--green); }
     .result-verdict-sub {
         font-size: .82rem;
         color: var(--text2);
-        font-weight: 400;
         margin-top: .2rem;
     }
-    .result-confidence {
-        text-align: right;
-        flex-shrink: 0;
-    }
-    .result-conf-val {
-        font-size: 1.6rem;
-        font-weight: 700;
-        line-height: 1;
-    }
-    .result-conf-val.danger { color: var(--red); }
+    .result-conf-block { text-align: right; flex-shrink: 0; }
+    .result-conf-val { font-size: 1.55rem; font-weight: 800; line-height: 1; }
+    .result-conf-val.danger  { color: var(--red); }
     .result-conf-val.success { color: var(--green); }
     .result-conf-label {
-        font-size: .72rem;
+        font-size: .7rem;
         color: var(--text3);
         text-transform: uppercase;
         letter-spacing: .06em;
     }
-
-    /* URL analysée */
     .result-url {
         font-family: var(--ff-m);
-        font-size: .82rem;
+        font-size: .8rem;
         color: var(--text2);
         background: var(--bg);
         border: 1px solid var(--border);
@@ -308,35 +446,26 @@ def inject_css() -> None:
         margin-bottom: 1.2rem;
         word-break: break-all;
     }
-
-    /* Barres de probabilité */
-    .prob-section { margin-bottom: 1.2rem; }
-    .prob-row { margin-bottom: .65rem; }
+    .prob-section { margin-bottom: 1.1rem; }
+    .prob-row { margin-bottom: .6rem; }
     .prob-meta {
         display: flex;
         justify-content: space-between;
         font-size: .78rem;
         color: var(--text2);
-        margin-bottom: .3rem;
+        margin-bottom: .28rem;
         font-weight: 500;
     }
     .prob-track {
-        height: 8px;
+        height: 7px;
         background: var(--bg);
         border-radius: 4px;
         overflow: hidden;
         border: 1px solid var(--border);
     }
-    .prob-fill {
-        height: 100%;
-        border-radius: 4px;
-        width: var(--w);
-        transition: width 1s cubic-bezier(.4,0,.2,1);
-    }
+    .prob-fill { height: 100%; border-radius: 4px; width: var(--w); }
     .prob-fill.legit { background: var(--green); }
     .prob-fill.phish { background: var(--red); }
-
-    /* Grille de stats */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -347,57 +476,43 @@ def inject_css() -> None:
         background: var(--bg);
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: .7rem .9rem;
+        padding: .65rem .9rem;
         text-align: center;
     }
     .stat-val {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
         color: var(--navy);
         line-height: 1.2;
+        word-break: break-all;
     }
-    .stat-val.url-len { font-family: var(--ff-m); font-size: .9rem; }
     .stat-lbl {
-        font-size: .66rem;
+        font-size: .63rem;
         color: var(--text3);
         text-transform: uppercase;
         letter-spacing: .07em;
         margin-top: .15rem;
     }
-
-    /* Message d'alerte résultat */
     .result-msg {
         font-size: .85rem;
         border-radius: 8px;
-        padding: .8rem 1rem;
-        line-height: 1.55;
+        padding: .85rem 1rem;
+        line-height: 1.6;
     }
-    .result-msg.danger {
-        background: var(--red-l);
-        border: 1px solid var(--red-b);
-        color: #991b1b;
-    }
-    .result-msg.success {
-        background: var(--green-l);
-        border: 1px solid var(--green-b);
-        color: #166534;
-    }
+    .result-msg.danger  { background: var(--red-l);   border: 1px solid var(--red-b);   color: #991b1b; }
+    .result-msg.success { background: var(--green-l); border: 1px solid var(--green-b); color: #166534; }
 
     /* Historique */
-    .hist-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: .82rem;
-    }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .hist-table th {
         background: var(--bg);
         color: var(--text3);
-        font-weight: 600;
-        font-size: .7rem;
+        font-weight: 700;
+        font-size: .68rem;
         text-transform: uppercase;
-        letter-spacing: .07em;
+        letter-spacing: .08em;
         padding: .55rem .75rem;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 2px solid var(--border);
         text-align: left;
     }
     .hist-table td {
@@ -410,109 +525,117 @@ def inject_css() -> None:
     .hist-table tr:hover td { background: var(--bg); }
     .hist-url-cell {
         font-family: var(--ff-m);
-        font-size: .78rem;
-        max-width: 340px;
+        font-size: .77rem;
+        max-width: 300px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
     .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: .3rem;
-        padding: .18rem .6rem;
+        display: inline-flex; align-items: center; gap: .3rem;
+        padding: .2rem .65rem;
         border-radius: 999px;
         font-size: .72rem;
         font-weight: 600;
     }
-    .pill.phishing {
-        background: var(--red-l);
-        color: var(--red);
-        border: 1px solid var(--red-b);
-    }
-    .pill.legitimate {
-        background: var(--green-l);
-        color: var(--green);
-        border: 1px solid var(--green-b);
-    }
-    .pill-dot {
-        width: 5px; height: 5px;
-        border-radius: 50%;
-        background: currentColor;
-        flex-shrink: 0;
-    }
+    .pill.phishing  { background: var(--red-l);   color: var(--red);   border: 1px solid var(--red-b);   }
+    .pill.legitimate{ background: var(--green-l); color: var(--green); border: 1px solid var(--green-b); }
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
     /* Sidebar */
-    .sb-section {
-        margin-bottom: 1.4rem;
+    .sb-section { margin-bottom: 1.5rem; }
+    .sb-divider {
+        height: 1px;
+        background: rgba(255,255,255,.08);
+        margin: 1.2rem 0;
     }
-    .sb-title {
-        font-size: .68rem;
+    .sb-heading {
+        font-size: .64rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: .1em;
-        color: rgba(255,255,255,.4) !important;
-        margin-bottom: .6rem;
-        padding-bottom: .4rem;
-        border-bottom: 1px solid rgba(255,255,255,.1);
+        letter-spacing: .12em;
+        color: rgba(255,255,255,.35) !important;
+        margin-bottom: .65rem;
+    }
+    .sb-body {
+        font-size: .82rem;
+        color: rgba(255,255,255,.65) !important;
+        line-height: 1.65;
     }
     .sb-tag {
         display: inline-block;
-        background: rgba(255,255,255,.1);
-        border: 1px solid rgba(255,255,255,.15);
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.13);
         border-radius: 4px;
         padding: .2rem .55rem;
         font-size: .68rem;
-        color: rgba(255,255,255,.75) !important;
+        color: rgba(255,255,255,.7) !important;
         margin: .15rem;
-        font-family: var(--ff);
     }
     .sb-ex-url {
         font-family: var(--ff-m);
-        font-size: .7rem;
+        font-size: .69rem;
         padding: .35rem .6rem;
         border-radius: 5px;
-        margin-bottom: .3rem;
+        margin-bottom: .28rem;
         word-break: break-all;
-        color: rgba(255,255,255,.75) !important;
+        color: rgba(255,255,255,.72) !important;
     }
-    .sb-ex-url.ok  { background: rgba(22,163,74,.15);  border: 1px solid rgba(22,163,74,.3); }
-    .sb-ex-url.bad { background: rgba(220,38,38,.15);  border: 1px solid rgba(220,38,38,.3); }
-    .sb-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3,1fr);
-        gap: .5rem;
-    }
+    .sb-ex-url.ok  { background: rgba(22,163,74,.15);  border: 1px solid rgba(22,163,74,.28); }
+    .sb-ex-url.bad { background: rgba(220,38,38,.15);  border: 1px solid rgba(220,38,38,.28); }
+    .sb-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .45rem; }
     .sb-stat-box {
-        background: rgba(255,255,255,.07);
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.08);
         border-radius: 7px;
         padding: .6rem .4rem;
         text-align: center;
     }
-    .sb-stat-val {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #fff !important;
+    .sb-stat-val  { font-size: 1.1rem; font-weight: 700; color: #fff !important; }
+    .sb-stat-lbl  { font-size: .6rem; color: rgba(255,255,255,.4) !important; text-transform: uppercase; letter-spacing: .07em; }
+    .sb-link-row {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        padding: .45rem .6rem;
+        border-radius: 7px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.1);
+        margin-bottom: .4rem;
+        text-decoration: none;
+        transition: background .15s;
     }
-    .sb-stat-lbl {
-        font-size: .62rem;
-        color: rgba(255,255,255,.45) !important;
-        text-transform: uppercase;
-        letter-spacing: .07em;
-    }
+    .sb-link-row:hover { background: rgba(255,255,255,.12); }
+    .sb-link-text { font-size: .8rem; color: rgba(255,255,255,.8) !important; font-weight: 500; }
 
     /* Pied de page */
     .pg-footer {
         margin-top: 3rem;
         padding-top: 1.2rem;
         border-top: 1px solid var(--border);
-        font-size: .75rem;
-        color: var(--text3);
         display: flex;
         justify-content: space-between;
+        align-items: center;
         flex-wrap: wrap;
-        gap: .5rem;
+        gap: .8rem;
     }
+    .footer-left { font-size: .77rem; color: var(--text3); line-height: 1.6; }
+    .footer-links { display: flex; gap: .6rem; }
+    .footer-link {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .35rem .75rem;
+        border-radius: 7px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: .78rem;
+        color: var(--text2) !important;
+        text-decoration: none;
+        font-weight: 500;
+        transition: border-color .15s, color .15s;
+    }
+    .footer-link:hover { border-color: var(--navy); color: var(--navy) !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -599,17 +722,15 @@ def predict_url(url: str) -> dict | None:
 
 def render_header(online: bool) -> None:
     dot_cls   = "online" if online else "offline"
-    dot_label = "Modèle actif" if online else "Chargement en cours…"
+    dot_label = "Modele actif" if online else "Chargement en cours..."
     st.markdown(
         f'<div class="pg-header">'
-        f'<div class="pg-logo-row">'
-        f'<div class="pg-icon">&#x1F6E1;</div>'
-        f'<div>'
+        f'<div class="pg-icon-box">{SVG_SHIELD}</div>'
+        f'<div style="flex:1">'
         f'<div class="pg-title">PhishGuard</div>'
-        f'<div class="pg-subtitle">Détection automatique de liens de phishing par analyse linguistique</div>'
+        f'<div class="pg-tagline">'
+        f'Outil de detection automatique de liens de phishing par traitement du langage naturel'
         f'</div>'
-        f'</div>'
-        f'<div style="margin-top:.8rem">'
         f'<span class="status-badge {dot_cls}">'
         f'<span class="status-dot"></span>{dot_label}'
         f'</span>'
@@ -619,27 +740,88 @@ def render_header(online: bool) -> None:
     )
 
 
+def render_about() -> None:
+    st.markdown(
+        '<div class="about-card">'
+        '<div class="about-title">A propos du projet</div>'
+        '<p class="about-text">'
+        'PhishGuard est un outil d\'analyse automatique de liens web developpe dans le cadre d\'un '
+        'projet de recherche en traitement du langage naturel (NLP). Il permet d\'identifier en '
+        'quelques secondes si une URL presente des caracteristiques typiques d\'une tentative de '
+        'phishing, c\'est-a-dire une usurpation d\'identite numerique visant a derober des '
+        'informations confidentielles telles que des mots de passe ou des coordonnees bancaires.'
+        '</p>'
+        '<p class="about-text" style="margin-top:.7rem">'
+        'Le modele analyse trois familles de caracteristiques : les representations TF-IDF au '
+        'niveau des mots et des n-grammes de caracteres, ainsi que des indicateurs lexicaux '
+        '(longueur de l\'URL, entropie, presence d\'une adresse IP, extension de domaine suspecte). '
+        'Il a ete entraine sur plus de 450 000 URLs issues de sources reelles et labelisees.'
+        '</p>'
+        '<div class="about-stats">'
+        '<div class="about-stat"><div class="about-stat-val">450 000+</div><div class="about-stat-lbl">URLs d\'entrainement</div></div>'
+        '<div class="about-stat"><div class="about-stat-val">93 %</div><div class="about-stat-lbl">Score F1</div></div>'
+        '<div class="about-stat"><div class="about-stat-val">96 %</div><div class="about-stat-lbl">Precision globale</div></div>'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_guide() -> None:
+    st.markdown(
+        '<div class="guide-card">'
+        '<div class="guide-title">Comment utiliser PhishGuard</div>'
+        '<div class="guide-steps">'
+        '<div class="guide-step">'
+        '<div class="guide-num">1</div>'
+        '<div class="guide-step-text">'
+        '<span class="guide-step-title">Copiez le lien suspect</span>'
+        'Recuperez l\'URL depuis un e-mail, un SMS ou toute autre source douteuse.'
+        '</div>'
+        '</div>'
+        '<div class="guide-step">'
+        '<div class="guide-num">2</div>'
+        '<div class="guide-step-text">'
+        '<span class="guide-step-title">Collez et analysez</span>'
+        'Collez le lien dans le champ ci-dessous et cliquez sur Analyser.'
+        '</div>'
+        '</div>'
+        '<div class="guide-step">'
+        '<div class="guide-num">3</div>'
+        '<div class="guide-step-text">'
+        '<span class="guide-step-title">Lisez le verdict</span>'
+        'Suivez les recommandations affichees et signalez tout lien suspect a votre '
+        'service informatique.'
+        '</div>'
+        '</div>'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def render_result(result: dict, url: str) -> None:
     is_phishing = result["prediction"] == 1
     cls         = "danger" if is_phishing else "success"
-    verdict     = "Lien suspect — Phishing probable" if is_phishing else "Lien légitime"
+    verdict     = "Lien suspect — Phishing probable" if is_phishing else "Lien legitime"
     verdict_sub = (
-        "Ce lien présente des caractéristiques typiques d'une tentative de phishing."
+        "Ce lien presente des caracteristiques typiques d'une tentative de phishing."
         if is_phishing else
-        "Aucun indicateur de phishing détecté sur ce lien."
+        "Aucun indicateur de phishing detecte sur ce lien."
     )
-    conf_pct    = f"{result['confidence']:.0%}"
-    p_legit     = result["proba_legitimate"]
-    p_phish     = result["proba_phishing"]
-    w_legit     = f"{p_legit * 100:.1f}%"
-    w_phish     = f"{p_phish * 100:.1f}%"
-    ts          = datetime.fromisoformat(result["timestamp"].replace("Z", "")).strftime("%d/%m/%Y %H:%M UTC")
+    conf_pct = f"{result['confidence']:.0%}"
+    p_legit  = result["proba_legitimate"]
+    p_phish  = result["proba_phishing"]
+    w_legit  = f"{p_legit * 100:.1f}%"
+    w_phish  = f"{p_phish * 100:.1f}%"
+    ts       = datetime.fromisoformat(result["timestamp"].replace("Z", "")).strftime("%d/%m/%Y %H:%M")
     msg = (
-        "Attention : ne cliquez pas sur ce lien et ne saisissez aucune information personnelle "
-        "(identifiant, mot de passe, coordonnées bancaires). Signalez-le à votre service informatique."
+        "Ne cliquez pas sur ce lien et ne saisissez aucune information personnelle "
+        "(identifiant, mot de passe, coordonnees bancaires). Signalez-le immediatement "
+        "a votre service informatique ou responsable de la securite."
         if is_phishing else
-        "Ce lien semble fiable. Restez néanmoins vigilant et vérifiez toujours l'expéditeur avant "
-        "de saisir des informations sensibles."
+        "Ce lien semble fiable d'apres l'analyse du modele. Restez neanmoins vigilant : "
+        "verifiez toujours l'expediteur avant de saisir des informations sensibles."
     )
 
     st.markdown(
@@ -649,15 +831,15 @@ def render_result(result: dict, url: str) -> None:
         f'<div class="result-verdict {cls}">{verdict}</div>'
         f'<div class="result-verdict-sub">{verdict_sub}</div>'
         f'</div>'
-        f'<div class="result-confidence">'
-        f'<div class="result-conf-label">Confiance</div>'
+        f'<div class="result-conf-block">'
+        f'<div class="result-conf-label">Indice de confiance</div>'
         f'<div class="result-conf-val {cls}">{conf_pct}</div>'
         f'</div>'
         f'</div>'
         f'<div class="result-url">{url}</div>'
         f'<div class="prob-section">'
         f'<div class="prob-row">'
-        f'<div class="prob-meta"><span>Légitime</span><span>{p_legit:.1%}</span></div>'
+        f'<div class="prob-meta"><span>Legitime</span><span>{p_legit:.1%}</span></div>'
         f'<div class="prob-track"><div class="prob-fill legit" style="--w:{w_legit}"></div></div>'
         f'</div>'
         f'<div class="prob-row">'
@@ -667,8 +849,8 @@ def render_result(result: dict, url: str) -> None:
         f'</div>'
         f'<div class="stats-grid">'
         f'<div class="stat-cell"><div class="stat-val">{ts}</div><div class="stat-lbl">Date d\'analyse</div></div>'
-        f'<div class="stat-cell"><div class="stat-val">{"Phishing" if is_phishing else "Légitime"}</div><div class="stat-lbl">Classification</div></div>'
-        f'<div class="stat-cell"><div class="stat-val url-len">{len(url)}</div><div class="stat-lbl">Longueur URL</div></div>'
+        f'<div class="stat-cell"><div class="stat-val">{"Phishing" if is_phishing else "Legitime"}</div><div class="stat-lbl">Classification</div></div>'
+        f'<div class="stat-cell"><div class="stat-val">{len(url)}</div><div class="stat-lbl">Longueur de l\'URL</div></div>'
         f'</div>'
         f'<div class="result-msg {cls}">{msg}</div>'
         f'</div>',
@@ -678,28 +860,25 @@ def render_result(result: dict, url: str) -> None:
 
 def render_history(history: list) -> None:
     items = list(reversed(history[-10:]))
-    rows = ""
+    rows  = ""
     for item in items:
-        lbl   = item["label"]
-        ts    = datetime.fromisoformat(item["timestamp"].replace("Z", "")).strftime("%H:%M")
-        short = item["url"][:60] + ("…" if len(item["url"]) > 60 else "")
-        conf  = f"{item['confidence']:.0%}"
-        label_fr = "Phishing" if lbl == "phishing" else "Légitime"
+        lbl      = item["label"]
+        ts       = datetime.fromisoformat(item["timestamp"].replace("Z", "")).strftime("%H:%M")
+        short    = item["url"][:58] + ("..." if len(item["url"]) > 58 else "")
+        conf     = f"{item['confidence']:.0%}"
+        label_fr = "Phishing" if lbl == "phishing" else "Legitime"
         rows += (
             f'<tr>'
-            f'<td class="hist-url-cell">{short}</td>'
+            f'<td class="hist-url-cell" title="{item["url"]}">{short}</td>'
             f'<td><span class="pill {lbl}"><span class="pill-dot"></span>{label_fr}</span></td>'
             f'<td style="font-weight:600;color:var(--text)">{conf}</td>'
             f'<td style="color:var(--text3)">{ts}</td>'
             f'</tr>'
         )
     st.markdown(
-        f'<table class="hist-table">'
-        f'<thead><tr>'
-        f'<th>URL analysée</th><th>Verdict</th><th>Confiance</th><th>Heure</th>'
-        f'</tr></thead>'
-        f'<tbody>{rows}</tbody>'
-        f'</table>',
+        f'<table class="hist-table"><thead><tr>'
+        f'<th>URL analysee</th><th>Verdict</th><th>Confiance</th><th>Heure</th>'
+        f'</tr></thead><tbody>{rows}</tbody></table>',
         unsafe_allow_html=True,
     )
 
@@ -709,45 +888,55 @@ def render_sidebar(history: list) -> None:
     threats = sum(1 for h in history if h["label"] == "phishing")
     safe    = total - threats
 
+    # Stats de session
     st.markdown(
         f'<div class="sb-section">'
-        f'<div class="sb-title">Statistiques de session</div>'
+        f'<div class="sb-heading">Statistiques de session</div>'
         f'<div class="sb-stats-grid">'
         f'<div class="sb-stat-box"><div class="sb-stat-val">{total}</div><div class="sb-stat-lbl">Analyses</div></div>'
         f'<div class="sb-stat-box"><div class="sb-stat-val">{threats}</div><div class="sb-stat-lbl">Suspects</div></div>'
-        f'<div class="sb-stat-box"><div class="sb-stat-val">{safe}</div><div class="sb-stat-lbl">Sûrs</div></div>'
+        f'<div class="sb-stat-box"><div class="sb-stat-val">{safe}</div><div class="sb-stat-lbl">Surs</div></div>'
         f'</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        '<div class="sb-section">'
-        '<div class="sb-title">Modèle</div>',
-        unsafe_allow_html=True,
-    )
-    for tag in ["TF-IDF mots", "TF-IDF n-grammes", "Features lexicales", "Régression logistique", "F1 = 0.93", "Précision = 96%"]:
-        st.markdown(f'<span class="sb-tag">{tag}</span>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
 
+    # Modele
+    st.markdown('<div class="sb-heading">Technologies du modele</div>', unsafe_allow_html=True)
+    for tag in ["TF-IDF mots", "TF-IDF n-grammes", "Features lexicales", "Regression logistique"]:
+        st.markdown(f'<span class="sb-tag">{tag}</span>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
+
+    # Exemples
     st.markdown(
-        '<div class="sb-section" style="margin-top:.5rem">'
-        '<div class="sb-title">Exemples de liens</div>'
-        '<div style="font-size:.66rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">Légitimes</div>'
+        '<div class="sb-heading">Exemples d\'URLs</div>'
+        '<div style="font-size:.66rem;color:rgba(255,255,255,.35);text-transform:uppercase;'
+        'letter-spacing:.07em;margin-bottom:.3rem">Legitimes</div>'
         '<div class="sb-ex-url ok">https://www.google.com</div>'
         '<div class="sb-ex-url ok">https://github.com/login</div>'
-        '<div style="font-size:.66rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin:.5rem 0 .35rem">Suspects</div>'
+        '<div style="font-size:.66rem;color:rgba(255,255,255,.35);text-transform:uppercase;'
+        'letter-spacing:.07em;margin:.5rem 0 .3rem">Suspects</div>'
         '<div class="sb-ex-url bad">http://paypal-secure.tk/login.php</div>'
-        '<div class="sb-ex-url bad">http://192.168.1.1/bank-verify</div>'
-        '</div>',
+        '<div class="sb-ex-url bad">http://192.168.1.1/bank-verify</div>',
         unsafe_allow_html=True,
     )
 
+    st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
+
+    # Liens
     st.markdown(
-        '<div style="margin-top:auto;padding-top:1rem;font-size:.68rem;'
-        'color:rgba(255,255,255,.3);line-height:1.7">'
-        'Souleymane Sall<br>NLP Phishing Detection &middot; 2025'
-        '</div>',
+        '<div class="sb-heading">Liens</div>'
+        f'<a class="sb-link-row" href="{LINKEDIN_URL}" target="_blank">'
+        f'{SVG_LINKEDIN}'
+        f'<span class="sb-link-text">Souleymane Sall — LinkedIn</span>'
+        f'</a>'
+        f'<a class="sb-link-row" href="{GITHUB_URL}" target="_blank">'
+        f'{SVG_GITHUB}'
+        f'<span class="sb-link-text">Code source — GitHub</span>'
+        f'</a>',
         unsafe_allow_html=True,
     )
 
@@ -764,21 +953,33 @@ def main() -> None:
         render_sidebar(history)
 
     render_header(online)
+    render_about()
+    render_guide()
 
-    # Formulaire d'analyse
+    # Zone de saisie
+    st.markdown('<div class="input-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-label">Analyser une URL</div>', unsafe_allow_html=True)
 
     with st.form(key="scan_form", clear_on_submit=False):
         url_input = st.text_input(
             label="url",
-            placeholder="Collez ici l'URL à vérifier — ex. https://example.com/page",
+            placeholder="Collez ici l'URL complete a verifier — ex. https://example.com/page",
             key="url_field",
         )
-        col1, col2, _ = st.columns([1.5, 1, 4])
+        st.markdown(
+            '<div class="input-hint">'
+            'Incluez le protocole complet (http:// ou https://). '
+            'L\'outil analyse la structure linguistique de l\'URL, sans y acceder.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        col1, col2, _ = st.columns([1.4, 1, 4])
         with col1:
             submitted = st.form_submit_button("Analyser", type="primary", use_container_width=True)
         with col2:
             clear = st.form_submit_button("Effacer", use_container_width=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if clear:
         st.session_state.pop("last_result", None)
@@ -789,9 +990,9 @@ def main() -> None:
         if not url_input.strip():
             st.warning("Veuillez saisir une URL avant de lancer l'analyse.")
         elif not online:
-            st.warning("Le modèle est en cours de chargement. Veuillez patienter quelques instants.")
+            st.warning("Le modele est en cours de chargement. Veuillez patienter quelques instants.")
         else:
-            with st.spinner("Analyse en cours…"):
+            with st.spinner("Analyse en cours..."):
                 result = predict_url(url_input.strip())
             if result:
                 st.session_state["last_result"] = result
@@ -808,7 +1009,10 @@ def main() -> None:
 
     # Résultat
     if "last_result" in st.session_state:
-        st.markdown('<div class="section-label" style="margin-top:1.2rem">Résultat de l\'analyse</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-label" style="margin-top:1.4rem">Resultat de l\'analyse</div>',
+            unsafe_allow_html=True,
+        )
         render_result(st.session_state["last_result"], st.session_state["last_url"])
 
     # Historique
@@ -817,7 +1021,7 @@ def main() -> None:
         st.markdown('<hr>', unsafe_allow_html=True)
         st.markdown('<div class="section-label">Historique de la session</div>', unsafe_allow_html=True)
         render_history(history)
-        st.markdown('<div style="margin-top:.6rem"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top:.7rem"></div>', unsafe_allow_html=True)
         if st.button("Effacer l'historique"):
             st.session_state.history = []
             st.session_state.pop("last_result", None)
@@ -826,12 +1030,20 @@ def main() -> None:
 
     # Pied de page
     st.markdown(
-        '<div class="pg-footer">'
-        '<span>PhishGuard — Détection de phishing par NLP</span>'
-        '<span>scikit-learn &middot; Streamlit &middot; '
-        '<a href="mailto:sallsouleymane2207@gmail.com" style="color:inherit">Souleymane Sall</a>'
-        '</span>'
-        '</div>',
+        f'<div class="pg-footer">'
+        f'<div class="footer-left">'
+        f'PhishGuard — Detection de phishing par NLP<br>'
+        f'Souleymane Sall &middot; scikit-learn &middot; Streamlit'
+        f'</div>'
+        f'<div class="footer-links">'
+        f'<a class="footer-link" href="{LINKEDIN_URL}" target="_blank">'
+        f'{SVG_LINKEDIN} LinkedIn'
+        f'</a>'
+        f'<a class="footer-link" href="{GITHUB_URL}" target="_blank">'
+        f'{SVG_GITHUB} GitHub'
+        f'</a>'
+        f'</div>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 

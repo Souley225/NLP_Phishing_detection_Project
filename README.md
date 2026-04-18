@@ -1,14 +1,3 @@
----
-title: NLP Phishing Detection
-colorFrom: red
-colorTo: blue
-sdk: docker
-app_port: 7860
-pinned: true
-license: mit
-short_description: Detect phishing URLs with NLP (TF-IDF + LinearSVC, F1=95.5%)
----
-
 # PhishGuard : Détection de Phishing par NLP
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)

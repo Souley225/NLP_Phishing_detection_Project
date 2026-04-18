@@ -2,6 +2,9 @@
 # Utilise huggingface_hub.upload_folder pour gerer les fichiers binaires (.pkl)
 # sans passer par git push (rejete par HF pour les binaires depuis 2025).
 #
+# La configuration HF Space (frontmatter YAML) est injectee dans le README
+# uniquement pour l'upload — le README du depot GitHub reste propre.
+#
 # Prerequis : secret GitHub HF_TOKEN avec role "write" sur sallsou/nlp-phishing-detection.
 
 name: Sync to Hugging Face Space
@@ -23,6 +26,24 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Prepend HF Space config to README
+        run: |
+          cat << 'FRONTMATTER' > /tmp/hf_readme.md
+          ---
+          title: NLP Phishing Detection
+          colorFrom: red
+          colorTo: blue
+          sdk: docker
+          app_port: 7860
+          pinned: true
+          license: mit
+          short_description: Detect phishing URLs with NLP (TF-IDF + LinearSVC, F1=95.5%)
+          ---
+
+          FRONTMATTER
+          cat README.md >> /tmp/hf_readme.md
+          cp /tmp/hf_readme.md README.md
 
       - name: Sync to HF Space
         env:

@@ -34,6 +34,7 @@ def normalize_url(url: str) -> str:
     Normalise une URL pour assurer la coherence entre entrainement et inference.
 
     - Ajoute https:// si absent (urlparse ne parse pas correctement sans scheme)
+    - Supprime le prefixe www. du hostname (forme canonique sans sous-domaine)
     - Supprime le slash final sur les domaines nus pour eviter que num_slashes
       differe entre domain.com et domain.com/
 
@@ -47,8 +48,13 @@ def normalize_url(url: str) -> str:
         url = "https://" + url
     try:
         parsed = urlparse(url)
+        netloc = parsed.netloc
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
+            parsed = parsed._replace(netloc=netloc)
         if parsed.path in ("", "/") and not parsed.query and not parsed.fragment:
-            url = urlunparse(parsed._replace(path=""))
+            parsed = parsed._replace(path="")
+        url = urlunparse(parsed)
     except ValueError:
         pass
     return url

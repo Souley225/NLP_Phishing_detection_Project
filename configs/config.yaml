@@ -37,17 +37,17 @@ features:
   # TF-IDF Mots
   tfidf_word:
     use: true
-    ngram_range: [1, 3]
-    max_features: 5000
+    ngram_range: [1, 2]      # bigrammes seulement — trigrams explosent le vocab
+    max_features: 20000
     min_df: 2
     max_df: 0.95
-    
+
   # TF-IDF Caractères
   tfidf_char:
     use: true
     analyzer: char
-    ngram_range: [2, 5]
-    max_features: 3000
+    ngram_range: [2, 4]      # jusqu'à 4-grammes chars
+    max_features: 15000
     min_df: 2
     max_df: 0.95
     

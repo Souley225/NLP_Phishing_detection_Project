@@ -17,8 +17,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from sklearn.linear_model import LogisticRegression
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import classification_report, f1_score
+from sklearn.svm import LinearSVC
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -84,8 +85,10 @@ def main() -> None:
     # Entrainement
     model_params = dict(cfg["model"]["default"]["params"])
     model_params["random_state"] = cfg["train"]["default"]["seed"]
-    logger.info("Parametres LogisticRegression: %s", model_params)
-    model = LogisticRegression(**model_params)
+    logger.info("Parametres LinearSVC: %s", model_params)
+    # CalibratedClassifierCV donne predict_proba à LinearSVC (isotonic sur la val)
+    svc   = LinearSVC(**model_params)
+    model = CalibratedClassifierCV(svc, cv=3, method="isotonic")
     model.fit(X_train, y_train)
 
     # Evaluation au seuil 0.5 (reference)

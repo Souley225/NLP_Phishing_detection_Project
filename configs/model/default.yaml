@@ -4,18 +4,12 @@
 
 # Configuration par défaut du modèle
 default:
-  # Type de modèle (LogisticRegression)
-  name: LogisticRegression
-  
-  # Hyperparamètres par défaut
-  # Ces valeurs seront optimisées par Optuna
+  name: LinearSVC
+
   params:
-    C: 1.0                    # Régularisation inverse
-    max_iter: 1000            # Nombre max d'itérations
-    solver: liblinear         # Solveur d'optimisation
-    penalty: l2               # Type de régularisation
-    random_state: 42          # Seed pour reproductibilité
-    n_jobs: -1                # Utiliser tous les coeurs CPU
+    C: 0.5                    # Régularisation (0.5 évite le sur-ajustement sur texte)
+    max_iter: 2000            # Suffisant pour convergence sur 355k samples
+    random_state: 42
   
   # Espace de recherche Optuna
   optuna_space:

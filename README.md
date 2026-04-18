@@ -1,14 +1,3 @@
----
-title: NLP Phishing Detection
-colorFrom: red
-colorTo: blue
-sdk: docker
-app_port: 7860
-pinned: true
-license: mit
-short_description: Detect phishing URLs with NLP (TF-IDF + LinearSVC, F1=95.5%)
----
-
 # PhishGuard — Détection de Phishing par NLP
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -19,9 +8,21 @@ short_description: Detect phishing URLs with NLP (TF-IDF + LinearSVC, F1=95.5%)
 [![HF Space](https://img.shields.io/badge/Demo-HF%20Space-FFD21E?logo=huggingface&logoColor=black)](https://sallsou-nlp-phishing-detection.hf.space)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
-Système de détection de phishing par analyse textuelle d'URLs. Analyse instantanée basée uniquement sur la structure de l'URL — aucun appel DNS, aucune requête réseau. **F1-Score de 95.5%** sur 549 000 URLs.
+---
 
-**Demo live :** [sallsou-nlp-phishing-detection.hf.space](https://sallsou-nlp-phishing-detection.hf.space)
+Chaque jour, des millions de personnes reçoivent des liens frauduleux par email ou SMS — des URLs conçues pour ressembler à de vrais sites (banques, réseaux sociaux, services en ligne) dans le but de voler des identifiants ou des données personnelles. C'est ce qu'on appelle le **phishing**.
+
+**PhishGuard** est un outil qui analyse une URL en moins d'une seconde et répond à une question simple : ce lien est-il dangereux ?
+
+Pas besoin de cliquer dessus. L'outil examine uniquement la structure du lien — sa longueur, ses caractères, son domaine, sa profondeur — et donne un verdict avec un niveau de confiance. Aucune connexion externe n'est effectuée.
+
+> Essayez la démo : [sallsou-nlp-phishing-detection.hf.space](https://sallsou-nlp-phishing-detection.hf.space)
+
+---
+
+### Sous le capot
+
+PhishGuard est un projet de Machine Learning entraîné sur **549 000 URLs réelles** (phishing et légitimes). Il atteint un **F1-Score de 95.5%** — ce qui signifie qu'il détecte correctement 19 liens sur 20, dans les deux sens : sans trop accuser des sites innocents, sans laisser passer des liens dangereux.
 
 ---
 
